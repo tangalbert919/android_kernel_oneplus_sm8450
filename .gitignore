@@ -164,3 +164,8 @@ arch/arm/boot/dts/vendor
 
 # Documentation toolchain
 sphinx_*/
+
+#
+#Ignoring Android.bp link file
+#
+Android.bp
