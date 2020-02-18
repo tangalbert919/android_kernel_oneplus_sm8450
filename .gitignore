@@ -160,3 +160,8 @@ arch/*/configs/vendor/*_defconfig
 
 # Documentation toolchain
 sphinx_*/
+
+#
+#Ignoring Android.bp link file
+#
+Android.bp
