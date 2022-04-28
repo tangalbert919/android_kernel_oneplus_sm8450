@@ -1608,8 +1608,10 @@ static int cnss_pci_set_mhi_state(struct cnss_pci_data *pci_priv,
 	if (ret)
 		goto out;
 
+	#ifndef OPLUS_BUG_STABILITY
 	cnss_pr_vdbg("Setting MHI state: %s(%d)\n",
 		     cnss_mhi_state_to_str(mhi_state), mhi_state);
+	#endif /* OPLUS_BUG_STABILITY */
 
 	switch (mhi_state) {
 	case CNSS_MHI_INIT:

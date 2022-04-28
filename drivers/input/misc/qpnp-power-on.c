@@ -172,7 +172,8 @@ enum pon_type {
 	PON_KPDPWR_RESIN = PON_POWER_ON_TYPE_KPDPWR_RESIN,
 };
 
-struct qpnp_pon_config {
+// MODIFIED OPLUS EDIT: COMMENT OUT, DO NOT ERASE
+/*struct qpnp_pon_config {
 	u32			pon_type;
 	u32			support_reset;
 	u32			key_code;
@@ -236,7 +237,10 @@ struct qpnp_pon {
 	bool			log_kpd_event;
 };
 
-static struct qpnp_pon *sys_reset_dev;
+static struct qpnp_pon *sys_reset_dev;*/
+struct qpnp_pon *sys_reset_dev;
+EXPORT_SYMBOL(sys_reset_dev);
+
 static struct qpnp_pon *modem_reset_dev;
 static DEFINE_SPINLOCK(spon_list_slock);
 static LIST_HEAD(spon_dev_list);

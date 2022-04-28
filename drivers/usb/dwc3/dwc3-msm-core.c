@@ -576,6 +576,35 @@ void *dwc_trace_ipc_log_ctxt;
 
 static void dwc3_pwr_event_handler(struct dwc3_msm *mdwc);
 static int get_chg_type(struct dwc3_msm *mdwc);
+#ifdef OPLUS_FEATURE_CHG_BASIC
+static bool (*oplus_ignore_usb_notify)(void);
+static int dwc3_msm_usb_set_role(struct usb_role_switch *sw, enum usb_role role);
+void oplus_dwc3_config_usbphy_pfunc(bool (*pfunc)(void))
+{
+	oplus_ignore_usb_notify = pfunc;
+}
+EXPORT_SYMBOL(oplus_dwc3_config_usbphy_pfunc);
+
+void oplus_usb_set_none_role(void)
+{
+	printk(KERN_ERR "%s\n", __func__);
+}
+EXPORT_SYMBOL(oplus_usb_set_none_role);
+
+static bool oplus_dwc3_need_set_usbphy_hz(void)
+{
+	bool ret = false;
+
+	if (oplus_ignore_usb_notify == NULL) {
+		ret = false;
+	} else {
+		ret = oplus_ignore_usb_notify();
+	}
+
+	printk(KERN_ERR "%s, set usbphy hz:%d\n", __func__, ret);
+	return ret;
+}
+#endif
 
 static inline void dwc3_msm_ep_writel(void __iomem *base, u32 offset, u32 value)
 {
@@ -3395,6 +3424,14 @@ static void enable_usb_pdc_interrupt(struct dwc3_msm *mdwc, bool enable)
 		 * is seen, if device pulls up DP before the suspend routine
 		 * configures the PDC IRQs, leading it to miss the rising edge.
 		 */
+		#ifdef OPLUS_FEATURE_CHG_BASIC
+		configure_usb_wakeup_interrupt(mdwc,
+			&mdwc->wakeup_irq[DP_HS_PHY_IRQ],
+			IRQF_TRIGGER_HIGH | IRQ_TYPE_LEVEL_HIGH, true);
+		configure_usb_wakeup_interrupt(mdwc,
+			&mdwc->wakeup_irq[DM_HS_PHY_IRQ],
+			IRQF_TRIGGER_HIGH | IRQ_TYPE_LEVEL_HIGH, true);
+		#else
 		configure_usb_wakeup_interrupt(mdwc,
 			&mdwc->wakeup_irq[DP_HS_PHY_IRQ],
 			mdwc->in_host_mode ?
@@ -3405,6 +3442,7 @@ static void enable_usb_pdc_interrupt(struct dwc3_msm *mdwc, bool enable)
 			mdwc->in_host_mode ?
 			(IRQF_TRIGGER_HIGH | IRQ_TYPE_LEVEL_HIGH) :
 			IRQ_TYPE_EDGE_RISING, true);
+		#endif
 	}
 
 	configure_usb_wakeup_interrupt(mdwc,
@@ -4497,6 +4535,14 @@ static int dwc3_msm_set_role(struct dwc3_msm *mdwc, enum usb_role role)
 		mutex_unlock(&mdwc->role_switch_mutex);
 		return 0;
 	}
+
+#ifdef OPLUS_FEATURE_CHG_BASIC
+	if (oplus_dwc3_need_set_usbphy_hz() == true && role != USB_ROLE_NONE) {
+		pr_err("!!!ignore the notify to start USB device mode");
+		mutex_unlock(&mdwc->role_switch_mutex);
+		return 0;
+	}
+#endif
 
 	switch (role) {
 	case USB_ROLE_HOST:
@@ -6234,6 +6280,10 @@ static int dwc3_msm_pm_resume(struct device *dev)
 	dbg_event(0xFF, "PM Res", 0);
 
 	atomic_set(&mdwc->pm_suspended, 0);
+
+	/* Let DWC3 core complete determine if resume is needed */
+	if (!mdwc->in_host_mode)
+		return 0;
 
 	/* Let DWC3 core complete determine if resume is needed */
 	if (!mdwc->in_host_mode)

@@ -18,6 +18,10 @@
 #include <linux/sched/debug.h>
 #include <linux/io.h>
 
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
+#include <../kernel/oplus_perf_sched/sched_assist/sa_rwsem.h>
+#endif
+
 #include <soc/qcom/watchdog.h>
 
 #include <trace/hooks/debug.h>
