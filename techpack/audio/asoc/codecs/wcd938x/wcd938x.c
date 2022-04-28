@@ -2236,6 +2236,10 @@ static int wcd938x_event_notify(struct notifier_block *block,
 						     NULL);
 		wcd938x->mbhc->wcd_mbhc.deinit_in_progress = true;
 		mbhc = &wcd938x->mbhc->wcd_mbhc;
+		#ifdef OPLUS_ARCH_EXTENDS
+		mbhc->plug_before_ssr = mbhc->current_plug;
+		pr_info("%s: mbhc->plug_before_ssr=%d\n", __func__, mbhc->plug_before_ssr);
+		#endif /* OPLUS_ARCH_EXTENDS */
 		wcd938x->usbc_hs_status = get_usbc_hs_status(component,
 						mbhc->mbhc_cfg);
 		wcd938x_mbhc_ssr_down(wcd938x->mbhc, component);

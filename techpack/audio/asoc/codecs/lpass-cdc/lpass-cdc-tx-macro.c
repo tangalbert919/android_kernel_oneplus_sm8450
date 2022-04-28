@@ -42,14 +42,28 @@
 #define LPASS_CDC_TX_MACRO_ADC_MUX_CFG_OFFSET 0x8
 #define LPASS_CDC_TX_MACRO_ADC_MODE_CFG0_SHIFT 1
 
+#ifndef OPLUS_ARCH_EXTENDS
 #define LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS	40
+#else /* OPLUS_ARCH_EXTENDS */
+#define LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS	50
+#endif /* OPLUS_ARCH_EXTENDS */
 #define LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS	100
 #define LPASS_CDC_TX_MACRO_DMIC_HPF_DELAY_MS	300
 #define LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS	300
 
+#ifndef OPLUS_ARCH_EXTENDS
 static int tx_unmute_delay = LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS;
 module_param(tx_unmute_delay, int, 0664);
 MODULE_PARM_DESC(tx_unmute_delay, "delay to unmute the tx path");
+#else /* OPLUS_ARCH_EXTENDS */
+static int tx_amic_unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+module_param(tx_amic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_amic_unmute_delay, "delay to unmute the tx amic path");
+
+static int tx_dmic_unmute_delay = LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS;
+module_param(tx_dmic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_dmic_unmute_delay, "delay to unmute the tx dmic path");
+#endif /* OPLUS_ARCH_EXTENDS */
 
 static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
 
@@ -587,8 +601,18 @@ static int lpass_cdc_tx_macro_tx_mixer_put(struct snd_kcontrol *kcontrol,
 		set_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
 		tx_priv->active_ch_cnt[dai_id]++;
 	} else {
+#if 1//def OPLUS_BUG_COMPATIBILITY
+		if (tx_priv->active_ch_cnt[dai_id] > 0) {
+			tx_priv->active_ch_cnt[dai_id]--;
+			clear_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
+		} else {
+			pr_err("%s: dai_id:%d, active_ch_cnt: %d\n", __func__,
+				dai_id, tx_priv->active_ch_cnt[dai_id]);
+		}
+#else /* OPLUS_BUG_COMPATIBILITY */
 		tx_priv->active_ch_cnt[dai_id]--;
 		clear_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
+#endif /* OPLUS_BUG_COMPATIBILITY */
 	}
 	snd_soc_dapm_mixer_update_power(widget->dapm, kcontrol, enable, update);
 
@@ -831,14 +855,36 @@ static int lpass_cdc_tx_macro_put_bcs_ch_sel(struct snd_kcontrol *kcontrol,
 }
 
 static int lpass_cdc_tx_macro_enable_dmic(struct snd_soc_dapm_widget *w,
+#ifndef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
+		struct snd_kcontrol *kcontrol, int event)
+#else
 		struct snd_kcontrol *kcontrol, int event, u16 adc_mux0_cfg)
+#endif
 {
 	struct snd_soc_component *component =
 				snd_soc_dapm_to_component(w->dapm);
 	unsigned int dmic = 0;
+#ifndef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
+	int ret = 0;
+	char *wname = NULL;
 
+	wname = strpbrk(w->name, "01234567");
+	if (!wname) {
+		dev_err(component->dev, "%s: widget not found\n", __func__);
+		return -EINVAL;
+	}
+
+	ret = kstrtouint(wname, 10, &dmic);
+	if (ret < 0) {
+		dev_err(component->dev, "%s: Invalid DMIC line on the codec\n",
+			__func__);
+		return -EINVAL;
+	}
+#else
 	dmic = (snd_soc_component_read(component, adc_mux0_cfg) >> 4) - 1;
-
+#endif
 	dev_dbg(component->dev, "%s: event %d DMIC%d\n",
 			__func__, event,  dmic);
 
@@ -867,7 +913,10 @@ static int lpass_cdc_tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 	u16 tx_fs_reg = 0;
 	u8 hpf_cut_off_freq = 0;
 	u16 adc_mux_reg = 0;
+#ifdef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
 	u16 adc_mux0_reg = 0;
+#endif
 	int hpf_delay = LPASS_CDC_TX_MACRO_DMIC_HPF_DELAY_MS;
 	int unmute_delay = LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS;
 	struct device *tx_dev = NULL;
@@ -891,17 +940,21 @@ static int lpass_cdc_tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 				LPASS_CDC_TX_MACRO_TX_PATH_OFFSET * decimator;
 	adc_mux_reg = LPASS_CDC_TX_INP_MUX_ADC_MUX0_CFG1 +
 			LPASS_CDC_TX_MACRO_ADC_MUX_CFG_OFFSET * decimator;
+#ifdef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
 	adc_mux0_reg = LPASS_CDC_TX_INP_MUX_ADC_MUX0_CFG0 +
 			LPASS_CDC_TX_MACRO_ADC_MUX_CFG_OFFSET * decimator;
+#endif
 	tx_fs_reg = LPASS_CDC_TX0_TX_PATH_CTL +
 				LPASS_CDC_TX_MACRO_TX_PATH_OFFSET * decimator;
 
 	tx_priv->pcm_rate[decimator] = (snd_soc_component_read(component,
 				     tx_fs_reg) & 0x0F);
-
+#ifdef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
 	if(!is_amic_enabled(component, decimator))
 		lpass_cdc_tx_macro_enable_dmic(w, kcontrol, event, adc_mux0_reg);
-
+#endif
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
 		snd_soc_component_update_bits(component,
@@ -934,16 +987,32 @@ static int lpass_cdc_tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 						TX_HPF_CUT_OFF_FREQ_MASK,
 						CF_MIN_3DB_150HZ << 5);
 
+		#ifndef OPLUS_ARCH_EXTENDS
 		if (is_amic_enabled(component, decimator)) {
 			hpf_delay = LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS;
 			unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
 		}
 		if (tx_unmute_delay < unmute_delay)
 			tx_unmute_delay = unmute_delay;
+		#else /* OPLUS_ARCH_EXTENDS */
+		if (is_amic_enabled(component, decimator)) {
+			hpf_delay = LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS;
+			unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+			if (unmute_delay < tx_amic_unmute_delay)
+				unmute_delay = tx_amic_unmute_delay;
+		} else {
+			if (unmute_delay < tx_dmic_unmute_delay)
+				unmute_delay = tx_dmic_unmute_delay;
+		}
+		#endif /* OPLUS_ARCH_EXTENDS */
 		/* schedule work queue to Remove Mute */
 		queue_delayed_work(system_freezable_wq,
 				   &tx_priv->tx_mute_dwork[decimator].dwork,
+				   #ifndef OPLUS_ARCH_EXTENDS
 				   msecs_to_jiffies(tx_unmute_delay));
+				   #else /* OPLUS_ARCH_EXTENDS */
+				   msecs_to_jiffies(unmute_delay));
+				   #endif /* OPLUS_ARCH_EXTENDS */
 		if (tx_priv->tx_hpf_work[decimator].hpf_cut_off_freq !=
 							CF_MIN_3DB_150HZ) {
 			queue_delayed_work(system_freezable_wq,
@@ -1443,22 +1512,49 @@ static const struct snd_soc_dapm_widget lpass_cdc_tx_macro_dapm_widgets[] = {
 		lpass_cdc_tx_macro_enable_micbias,
 		SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 
+#ifndef OPLUS_ARCH_EXTENDS
+/*Minyi.Hu@MULTIMEDIA.AUDIODRIVER.CODEC.CR3093277, 2021/12/15, fix dmic pop issue, case 05550769*/
+	SND_SOC_DAPM_ADC_E("TX DMIC0", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC1", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC2", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC3", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC4", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC5", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC6", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+
+	SND_SOC_DAPM_ADC_E("TX DMIC7", NULL, SND_SOC_NOPM, 0, 0,
+		lpass_cdc_tx_macro_enable_dmic, SND_SOC_DAPM_PRE_PMU |
+		SND_SOC_DAPM_POST_PMD),
+#else
 	SND_SOC_DAPM_ADC("TX DMIC0", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC1", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC2", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC3", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC4", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC5", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC6", NULL, SND_SOC_NOPM, 0, 0),
-
 	SND_SOC_DAPM_ADC("TX DMIC7", NULL, SND_SOC_NOPM, 0, 0),
-
+#endif
 	SND_SOC_DAPM_INPUT("TX SWR_INPUT"),
 
 	SND_SOC_DAPM_MUX_E("TX DEC0 MUX", SND_SOC_NOPM,

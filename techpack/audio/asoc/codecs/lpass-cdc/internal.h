@@ -50,6 +50,10 @@ struct lpass_cdc_priv {
 	struct device *dev;
 	struct snd_soc_component *component;
 	struct regmap *regmap;
+#ifdef OPLUS_ARCH_EXTENDS
+	//Modify for sound card register fail Qcom case05379864, CR2984760
+	struct mutex macro_lock;
+#endif /* OPLUS_ARCH_EXTENDS */
 	struct mutex io_lock;
 	struct mutex clk_lock;
 	struct mutex vote_lock;

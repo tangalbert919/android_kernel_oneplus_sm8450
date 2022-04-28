@@ -663,6 +663,10 @@ int lpass_cdc_register_macro(struct device *dev, u16 macro_id,
 	if (macro_id == VA_MACRO)
 		priv->macro_params[macro_id].reg_wake_irq =
 						ops->reg_wake_irq;
+#ifdef OPLUS_ARCH_EXTENDS
+	//Modify for sound card register fail Qcom case05379864, CR2984760
+	mutex_lock(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	priv->num_dais += ops->num_dais;
 	priv->num_macros_registered++;
 	priv->macros_supported[macro_id] = true;
@@ -673,6 +677,10 @@ int lpass_cdc_register_macro(struct device *dev, u16 macro_id,
 		ret = lpass_cdc_copy_dais_from_macro(priv);
 		if (ret < 0) {
 			dev_err(dev, "%s: copy_dais failed\n", __func__);
+#ifdef OPLUS_ARCH_EXTENDS
+			//Modify for sound card register fail Qcom case05379864, CR2984760
+			mutex_unlock(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 			return ret;
 		}
 		if (priv->macros_supported[TX_MACRO] == false) {
@@ -685,9 +693,17 @@ int lpass_cdc_register_macro(struct device *dev, u16 macro_id,
 				priv->lpass_cdc_dais, priv->num_dais);
 		if (ret < 0) {
 			dev_err(dev, "%s: register codec failed\n", __func__);
+#ifdef OPLUS_ARCH_EXTENDS
+			//Modify for sound card register fail Qcom case05379864, CR2984760
+			mutex_unlock(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 			return ret;
 		}
 	}
+#ifdef OPLUS_ARCH_EXTENDS
+	//Modify for sound card register fail Qcom case05379864, CR2984760
+	mutex_unlock(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	return 0;
 }
 EXPORT_SYMBOL(lpass_cdc_register_macro);
@@ -1316,6 +1332,10 @@ static int lpass_cdc_probe(struct platform_device *pdev)
 	priv->core_audio_vote_count = 0;
 
 	dev_set_drvdata(&pdev->dev, priv);
+#ifdef OPLUS_ARCH_EXTENDS
+	//Modify for sound card register fail Qcom case05379864, CR2984760
+	mutex_init(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	mutex_init(&priv->io_lock);
 	mutex_init(&priv->clk_lock);
 	mutex_init(&priv->vote_lock);
@@ -1356,6 +1376,10 @@ static int lpass_cdc_remove(struct platform_device *pdev)
 		return -EINVAL;
 
 	of_platform_depopulate(&pdev->dev);
+#ifdef OPLUS_ARCH_EXTENDS
+	//Modify for sound card register fail Qcom case05379864, CR2984760
+	mutex_destroy(&priv->macro_lock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	mutex_destroy(&priv->io_lock);
 	mutex_destroy(&priv->clk_lock);
 	mutex_destroy(&priv->vote_lock);
