@@ -42,6 +42,10 @@
 
 #define SWR_HAP_REG_MAX			(SWR_HAP_ACCESS_BASE + 0xff)
 
+#ifdef OPLUS_FEATURE_RINGTONE_HAPTIC
+#define OPLUS_SWR_HAP_VMAX		200
+#endif /* OPLUS_FEATURE_RINGTONE_HAPTIC */
+
 enum pmic_type {
 	PM8350B = 1,
 };
@@ -374,14 +378,24 @@ static int haptics_vmax_put(struct snd_kcontrol *kcontrol,
 			snd_soc_component_get_drvdata(component);
 
 	swr_hap->vmax = ucontrol->value.integer.value[0];
+#ifdef OPLUS_FEATURE_RINGTONE_HAPTIC
+	if (swr_hap->vmax > OPLUS_SWR_HAP_VMAX) {
+		swr_hap->vmax = OPLUS_SWR_HAP_VMAX;
+	}
+#endif /* OPLUS_FEATURE_RINGTONE_HAPTIC */
 	pr_debug("%s: vmax %u\n", __func__, swr_hap->vmax);
 
 	return 0;
 }
 
 static const struct snd_kcontrol_new haptics_snd_controls[] = {
+#ifndef OPLUS_FEATURE_RINGTONE_HAPTIC
 	SOC_SINGLE_EXT("Haptics Amplitude Step", SND_SOC_NOPM, 0, 100, 0,
 		haptics_vmax_get, haptics_vmax_put),
+#else /* OPLUS_FEATURE_RINGTONE_HAPTIC */
+	SOC_SINGLE_EXT("Haptics Amplitude Step", SND_SOC_NOPM, 0, OPLUS_SWR_HAP_VMAX, 0,
+		haptics_vmax_get, haptics_vmax_put),
+#endif /* OPLUS_FEATURE_RINGTONE_HAPTIC */
 };
 
 static const struct snd_soc_dapm_widget haptics_comp_dapm_widgets[] = {
