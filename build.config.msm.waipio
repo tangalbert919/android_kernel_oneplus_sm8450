@@ -31,11 +31,7 @@ fi
 ## Inheriting MSM configs
 . ${KERNEL_DIR}/build.config.msm.common
 . ${KERNEL_DIR}/build.config.msm.gki
-set -x
-if [ -f "${ROOT_DIR}/oplus/config/build.config.msm.wapio.oplus" ]; then
-  echo "  set  ${ROOT_DIR}/oplus/config/build.config.msm.wapio.oplus build script"
-. ${ROOT_DIR}/oplus/config/build.config.msm.wapio.oplus
-fi
+. ${KERNEL_DIR}/build.config.msm.oplus
 
 # disable KMI symbol list and white list test in aging mode
 if [ -n "${AGING_DEBUG_MASK}" ]; then
