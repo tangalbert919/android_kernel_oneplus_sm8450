@@ -1,16 +1,56 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
-KBUILD_OPTIONS+= VIDEO_ROOT=$(KERNEL_SRC)/$(M)
+KBUILD_CPPFLAGS += -DCONFIG_MSM_MMRM=1
 
-all:
-	$(MAKE) -C $(KERNEL_SRC) M=$(M) modules $(KBUILD_OPTIONS)
+ifeq ($(CONFIG_ARCH_WAIPIO), y)
+include $(srctree)/techpack/video/config/waipio_video.conf
+LINUXINCLUDE    += -include $(srctree)/techpack/video/config/waipio_video.h \
+                   -I$(srctree)/techpack/video/driver/platform/waipio/inc
+endif
 
-modules_install:
-	$(MAKE) INSTALL_MOD_STRIP=1 -C $(KERNEL_SRC) M=$(M) modules_install
+ifeq ($(CONFIG_ARCH_DIWALI), y)
+include $(srctree)/techpack/video/config/diwali_video.conf
+LINUXINCLUDE    += -include $(srctree)/techpack/video/config/diwali_video.h \
+                   -I$(srctree)/techpack/video/driver/platform/diwali/inc
+endif
 
-%:
-	$(MAKE) -C $(KERNEL_SRC) M=$(M) $@ $(KBUILD_OPTIONS)
+LINUXINCLUDE    += -I$(srctree)/techpack/video/driver/vidc/inc \
+                   -I$(srctree)/techpack/video/include/uapi/vidc
 
-clean:
-	rm -f *.o *.ko *.mod.c *.mod.o *~ .*.cmd Module.symvers
-	rm -rf .tmp_versions
+USERINCLUDE     += -I$(srctree)/techpack/video/include/uapi/vidc/media \
+                   -I$(srctree)/techpack/video/include/uapi/vidc
+
+obj-m += msm_video.o
+
+ifeq ($(CONFIG_MSM_VIDC_WAIPIO), y)
+msm_video-objs += driver/platform/waipio/src/msm_vidc_waipio.o
+endif
+
+ifeq ($(CONFIG_MSM_VIDC_DIWALI), y)
+msm_video-objs += driver/platform/diwali/src/msm_vidc_diwali.o
+endif
+
+ifeq ($(CONFIG_MSM_VIDC_IRIS2), y)
+LINUXINCLUDE   += -I$(srctree)/techpack/video/driver/variant/iris2/inc
+msm_video-objs += driver/variant/iris2/src/msm_vidc_buffer_iris2.o \
+                  driver/variant/iris2/src/msm_vidc_power_iris2.o \
+                  driver/variant/iris2/src/msm_vidc_iris2.o
+endif
+
+msm_video-objs += driver/vidc/src/msm_vidc_v4l2.o \
+                  driver/vidc/src/msm_vidc_vb2.o \
+                  driver/vidc/src/msm_vidc.o \
+                  driver/vidc/src/msm_vdec.o \
+                  driver/vidc/src/msm_venc.o \
+                  driver/vidc/src/msm_vidc_driver.o \
+                  driver/vidc/src/msm_vidc_control.o \
+                  driver/vidc/src/msm_vidc_buffer.o \
+                  driver/vidc/src/msm_vidc_power.o \
+                  driver/vidc/src/msm_vidc_probe.o \
+                  driver/vidc/src/msm_vidc_dt.o \
+                  driver/vidc/src/msm_vidc_platform.o \
+                  driver/vidc/src/msm_vidc_debug.o \
+                  driver/vidc/src/msm_vidc_memory.o \
+                  driver/vidc/src/venus_hfi.o \
+                  driver/vidc/src/hfi_packet.o \
+                  driver/vidc/src/venus_hfi_response.o
