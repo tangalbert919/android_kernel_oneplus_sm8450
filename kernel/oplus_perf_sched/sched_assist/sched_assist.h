@@ -12,7 +12,6 @@
 #include <trace/hooks/rwsem.h>
 #include <trace/hooks/topology.h>
 #include <trace/hooks/binder.h>
-#include <trace/hooks/workqueue.h>
 #include <trace/events/task.h>
 
 #define REGISTER_TRACE_VH(vender_hook, handler) \
