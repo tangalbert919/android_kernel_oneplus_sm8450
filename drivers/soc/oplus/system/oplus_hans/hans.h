@@ -18,10 +18,10 @@
 
 #include <linux/freezer.h>
 #include <linux/cgroup.h>
-#include "../../../../../kernel_platform/common/kernel/sched/sched.h"
+#include <../kernel/sched/sched.h>
 #include <uapi/linux/android/binder.h>
-#include "../../../../../kernel_platform/common/drivers/android/binder_internal.h"
-#include "../../../../../kernel_platform/common/drivers/android/binder_alloc.h"
+#include "../../../../android/binder_internal.h"
+#include "../../../../android/binder_alloc.h"
 #include <trace/hooks/binder.h>
 #include <trace/hooks/signal.h>
 
