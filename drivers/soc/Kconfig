@@ -54,22 +54,6 @@ source "drivers/soc/oplus/sensor/Kconfig"
 source "kernel/oplus_cpu/cpufreq_health/Kconfig"
 #endif /* OPLUS_FEATURE_OCH */
 
-#ifdef OPLUS_DFR_FEATURE
-source "drivers/soc/oplus/dfr/Kconfig"
-#endif /* OPLUS_DFR_FEATURE */
-
-#ifdef OPLUS_FEATURE_MIDAS_GKI
-source "drivers/soc/oplus/power/midas/Kconfig"
-#endif
-
-#ifdef OPLUS_FEATURE_DFT
-source "drivers/soc/oplus/dft/Kconfig"
-#endif /* ifdef OPLUS_FEATURE_DFT */
-
-#ifdef OPLUS_FEATURE_OMRG
-source "kernel/oplus_cpu/oplus_omrg/Kconfig"
-#endif /* OPLUS_FEATURE_OMRG */
-
 #ifdef OPLUS_FEATURE_ATD
 source "kernel/oplus_cpu/detection/Kconfig"
 #endif /* OPLUS_FEATURE_ATD */

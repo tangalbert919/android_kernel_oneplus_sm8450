@@ -977,9 +977,9 @@ static int qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 	 * Simulate a press event in case release event occurred without a press
 	 * event
 	 */
-	if (pon->log_kpd_event && (cfg->pon_type == PON_KPDPWR))
+	/*if (pon->log_kpd_event && (cfg->pon_type == PON_KPDPWR))
 		pr_info_ratelimited("PMIC input: KPDPWR status=0x%02x, KPDPWR_ON=%d\n",
-			pon_rt_sts, (pon_rt_sts & QPNP_PON_KPDPWR_ON));
+			pon_rt_sts, (pon_rt_sts & QPNP_PON_KPDPWR_ON));*/
 
 	if (!cfg->old_state && !key_status) {
 		input_report_key(pon->pon_input, cfg->key_code, 1);
@@ -1413,15 +1413,15 @@ static int qpnp_pon_config_kpdpwr_init(struct qpnp_pon *pon,
 		cfg->s2_cntl2_addr = QPNP_PON_KPDPWR_S2_CNTL2(pon);
 	}
 
-	if (pon->log_kpd_event) {
-		/* Read PON_RT_STS status during driver initialization. */
+	/*if (pon->log_kpd_event) {
+		/* Read PON_RT_STS status during driver initialization.
 		rc = qpnp_pon_read(pon, QPNP_PON_RT_STS(pon), &pon_rt_sts);
 		if (rc < 0)
 			pr_err("failed to read QPNP_PON_RT_STS rc=%d\n", rc);
 
 		pr_info("KPDPWR status at init=0x%02x, KPDPWR_ON=%d\n",
 			pon_rt_sts, (pon_rt_sts & QPNP_PON_KPDPWR_ON));
-	}
+	}*/
 
 	return 0;
 }
@@ -2392,7 +2392,7 @@ static int qpnp_pon_probe(struct platform_device *pdev)
 		pon->is_spon = true;
 	}
 
-	pon->log_kpd_event = of_property_read_bool(dev->of_node, "qcom,log-kpd-event");
+	//pon->log_kpd_event = of_property_read_bool(dev->of_node, "qcom,log-kpd-event");
 
 	/* Register the PON configurations */
 	rc = qpnp_pon_config_init(pon, pdev);

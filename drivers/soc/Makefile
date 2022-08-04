@@ -46,18 +46,6 @@ obj-$(CONFIG_OPLUS_DEVICE_IFNO)  +=  oplus/device_info/
 obj-y                       += oplus/sensor/
 #endif /* OPLUS_FEATURE_SENSOR_SMEM */
 
-#ifdef OPLUS_DFR_FEATURE
-obj-y += oplus/dfr/
-#endif /* OPLUS_DFR_FEATURE */
-
-#ifdef OPLUS_FEATURE_MIDAS_GKI
-obj-$(CONFIG_OPLUS_FEATURE_MIDAS_GKI) += oplus/power/midas/
-#endif
-
-#ifdef OPLUS_FEATURE_DFT
-obj-y += oplus/dft/
-#endif /* ifdef OPLUS_FEATURE_DFT */
-
 #ifdef OPLUS_FEATURE_BOOT
 obj-y += oplus/boot/
 #endif /* OPLUS_FEATURE_BOOT */

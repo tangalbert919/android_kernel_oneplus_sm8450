@@ -19,13 +19,7 @@
 #include <linux/kthread.h>
 #include <linux/sched/clock.h>
 #include <soc/oplus/system/boot_mode.h>
-
-#if defined(CONFIG_OPLUS_FEATURE_FEEDBACK) ||	\
-	defined(CONFIG_OPLUS_FEATURE_FEEDBACK_MODULE)
 #include <soc/oplus/system/kernel_fb.h>
-#elif defined(CONFIG_OPLUS_KEVENT_UPLOAD)
-#include <linux/oplus_kevent.h>
-#endif
 
 #include <oplus_chg.h>
 #include <oplus_chg_module.h>
