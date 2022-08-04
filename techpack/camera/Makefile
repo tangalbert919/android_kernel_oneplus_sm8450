@@ -53,7 +53,12 @@ LINUXINCLUDE += \
 	-I$(srctree)/techpack/camera/include/uapi/camera \
 	-I$(srctree)/techpack/camera/include
 # Optional include directories
-#ccflags-$(CONFIG_MSM_GLOBAL_SYNX) += -I$(KERNEL_ROOT)/drivers/media/platform/msm/synx
+ccflags-$(CONFIG_MSM_GLOBAL_SYNX) += -I$(srctree)/drivers/media/platform/msm/synx
+
+# Include driver headers. Backported from op9 kernel.
+cameratree := $(srctree)/techpack/camera/drivers
+cam_include_dirs := $(shell dirname `find $(cameratree) -name '*.h'` | uniq)
+ccflags-y += $(addprefix -I,$(cam_include_dirs))
 
 # After creating lists, add content of 'ccflags-m' variable to 'ccflags-y' one.
 ccflags-y += ${ccflags-m}
