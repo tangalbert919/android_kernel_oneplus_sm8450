@@ -38,7 +38,7 @@
 #include "kgsl_sysfs.h"
 #include "kgsl_trace.h"
 
-#include "../../../../../vendor/oplus/kernel/oplus_performance_5.10/mm/gloom/reserve_area.h"
+#include "../../../mm/oplus_perf_mm/gloom/reserve_area.h"
 
 #ifndef arch_mmap_check
 #define arch_mmap_check(addr, len, flags)	(0)

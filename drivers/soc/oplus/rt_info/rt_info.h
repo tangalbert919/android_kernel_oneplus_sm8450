@@ -8,15 +8,9 @@
 #define _RT_INFO_H_
 
 #include <linux/sched.h>
-#ifdef CONFIG_OPLUS_SYSTEM_KERNEL_QCOM
-#include "../../../../../kernel_platform/common/kernel/sched/sched.h"
-#include "../../../../../kernel_platform/common/drivers/android/binder_internal.h"
-#include "../../../../../kernel_platform/common/drivers/android/binder_alloc.h"
-#else
-#include "../../../../../kernel-5.10/kernel/sched/sched.h"
-#include "../../../../../kernel-5.10/drivers/android/binder_internal.h"
-#include "../../../../../kernel-5.10/drivers/android/binder_alloc.h"
-#endif
+#include <../kernel/sched/sched.h>
+#include "../../../android/binder_internal.h"
+#include "../../../android/binder_alloc.h"
 
 #define MAX_RT_NUM         8
 

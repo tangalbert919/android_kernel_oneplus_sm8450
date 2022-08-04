@@ -16,7 +16,7 @@
 
 #include "va_feature_hash.h"
 #include "reserve_area.h"
-#include "../../sched/healthinfo/healthinfo.h"
+#include <../kernel/oplus_perf_sched/healthinfo/healthinfo.h>
 
 #define STACK_RLIMIT_OVERFFLOW		(32<<20)
 #define THRIDPART_APP_UID_LOW_LIMIT	10000UL
