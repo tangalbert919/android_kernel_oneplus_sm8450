@@ -148,10 +148,33 @@ char oplus_chg_debug_msg[OPLUS_CHG_DEBUG_MSG_LEN] = "";
 static int send_info_flag = 0;
 #define SEND_INFO_FLAG_WORK 1
 #define SEND_INFO_FLAG_IRQ 2
-ssize_t __attribute__((weak)) vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos);
-ssize_t __attribute__((weak)) vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos);
-struct file __attribute__((weak)) *filp_open(const char *filename, int flags, umode_t mode);
+//ssize_t __attribute__((weak)) vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos);
+//ssize_t __attribute__((weak)) vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos);
+//struct file __attribute__((weak)) *filp_open(const char *filename, int flags, umode_t mode);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0))
+ssize_t __attribute__((weak))
+vfs_read(struct file *file, char __user *buf, size_t count, loff_t *pos)
+{
+	return -EINVAL;
+}
 
+ssize_t __attribute__((weak))
+vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
+{
+	return -EINVAL;
+}
+
+int __attribute__((weak)) filp_close(struct file *filp, fl_owner_t id)
+{
+	return -EINVAL;
+}
+
+struct file __attribute__((weak)) *
+filp_open(const char *filename, int flags, umode_t mode)
+{
+	return ERR_PTR(-EINVAL);
+}
+#endif
 
 static int oplus_chg_debug_notify_type_is_set(int type);
 static int oplus_chg_get_vooc_adapter_type_index(struct oplus_chg_chip *chip);
