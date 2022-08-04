@@ -6,6 +6,7 @@
 #include <linux/power_supply.h>
 #include <linux/proc_fs.h>
 #include <linux/uaccess.h>
+#include <linux/fs.h>
 
 #ifdef CONFIG_OPLUS_CHARGER_MTK
 #include <linux/slab.h>
@@ -111,7 +112,7 @@ ssize_t __attribute__((weak)) vfs_write(struct file *file, const char __user *bu
 }
 
 /*kernel-5.10 GKI2.0 NOT allow drivers to use filp_open...*/
-struct file* __attribute__((weak)) filp_open(const char *filename, int flags, umode_t mode)
+/*struct file* __attribute__((weak)) filp_open(const char *filename, int flags, umode_t mode)
 {
 	return ERR_PTR(-EINVAL);
 }
@@ -119,7 +120,7 @@ struct file* __attribute__((weak)) filp_open(const char *filename, int flags, um
 int  __attribute__((weak)) filp_close(struct file *filp, fl_owner_t id)
 {
 	return 0;
-}
+}*/
 #endif
 
 int oplus_short_c_batt_err_code_init(void)
