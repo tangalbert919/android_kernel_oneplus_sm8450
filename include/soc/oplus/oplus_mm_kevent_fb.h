@@ -1,1 +1,1 @@
-../../../../../vendor/oplus/kernel/multimedia/feedback/oplus_mm_kevent_fb.h
+../../../drivers/soc/oplus/multimedia/oplus_mm_kevent_fb.h
