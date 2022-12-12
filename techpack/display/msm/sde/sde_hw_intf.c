@@ -639,6 +639,7 @@ static int sde_hw_intf_setup_te_config(struct sde_hw_intf *intf,
 	spin_lock(&tearcheck_spinlock);
 	SDE_REG_WRITE(c, INTF_TEAR_SYNC_WRCOUNT,
 			(te->start_pos + te->sync_threshold_start + 1));
+
 	SDE_REG_WRITE(c, INTF_TEAR_SYNC_CONFIG_VSYNC, cfg);
 	wmb(); /* disable vsync counter before updating single buffer registers */
 	SDE_REG_WRITE(c, INTF_TEAR_SYNC_CONFIG_HEIGHT, te->sync_cfg_height);
@@ -651,6 +652,7 @@ static int sde_hw_intf_setup_te_config(struct sde_hw_intf *intf,
 			 te->sync_threshold_start));
 	cfg |= BIT(19); /* VSYNC_COUNTER_EN */
 	SDE_REG_WRITE(c, INTF_TEAR_SYNC_CONFIG_VSYNC, cfg);
+
 	spin_unlock(&tearcheck_spinlock);
 
 	return 0;

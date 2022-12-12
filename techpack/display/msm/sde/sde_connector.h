@@ -610,7 +610,38 @@ struct sde_connector {
 	int rx_len;
 
 	struct edid *cached_edid;
+
+#ifdef OPLUS_BUG_STABILITY
+	/* indicate that whether the current frame backlight has been updated */
+	bool oplus_adfr_backlight_updated;
+	/* need qsync mode recovery after backlight status updated */
+	bool qsync_mode_recovery;
+	/* set timer to reset qsync after the backlight is no longer updated */
+	struct hrtimer qsync_mode_timer;
+	u32 qsync_dynamic_min_fps;
+	/* store the min fps value for next window setting */
+	u32 qsync_curr_dynamic_min_fps;
+	/* deferred min fps window setting status */
+	u32 qsync_deferred_window_status;
+#endif
+
+#ifdef OPLUS_BUG_STABILITY
+	// Used to indicate whether to update panel backlight in crtc_commit
+	bool bl_need_sync;
+#endif /* OPLUS_BUG_STABILITY */
 };
+
+#ifdef OPLUS_BUG_STABILITY
+struct dc_apollo_pcc_sync {
+	wait_queue_head_t bk_wait;
+	int dc_pcc_updated;
+	__u32 pcc;
+	__u32 pcc_last;
+	__u32 pcc_current;
+	struct mutex lock;
+	int backlight_pending;
+};
+#endif
 
 /**
  * to_sde_connector - convert drm_connector pointer to sde connector pointer
@@ -657,6 +688,16 @@ struct sde_connector {
  * Returns: Current cached avr_step value for given connector
  */
 #define sde_connector_get_avr_step(C) ((C) ? to_sde_connector((C))->avr_step : 0)
+
+#ifdef OPLUS_BUG_STABILITY
+/**
+ * sde_connector_get_qsync_dynamic_min_fps - get sde connector's qsync_dynamic_min_fps
+ * @C: Pointer to drm connector structure
+ * Returns: Current cached qsync_dynamic_min_fps for given connector
+ */
+#define sde_connector_get_qsync_dynamic_min_fps(C) \
+	((C) ? to_sde_connector((C))->qsync_dynamic_min_fps : 0)
+#endif
 
 /**
  * sde_connector_get_propinfo - get sde connector's property info pointer
@@ -1204,6 +1245,9 @@ int sde_connector_get_panel_vfp(struct drm_connector *connector,
  */
 int sde_connector_esd_status(struct drm_connector *connector);
 
+#ifdef OPLUS_BUG_STABILITY
+int _sde_connector_update_bl_scale_(struct sde_connector *c_conn);
+#endif
 const char *sde_conn_get_topology_name(struct drm_connector *conn,
 		struct msm_display_topology topology);
 

@@ -16,6 +16,10 @@
 #include "msm_drv.h"
 #include "sde_encoder.h"
 
+#ifdef OPLUS_BUG_STABILITY
+#include "../oplus/oplus_adfr.h"
+#endif
+
 #define to_dsi_bridge(x)     container_of((x), struct dsi_bridge, base)
 #define to_dsi_state(x)      container_of((x), struct dsi_connector_state, base)
 
@@ -488,6 +492,13 @@ static bool dsi_bridge_mode_fixup(struct drm_bridge *bridge,
 		return false;
 	}
 
+#ifdef OPLUS_BUG_STABILITY
+	/* add vsync source info from panel_dsi_mode to dsi_mode */
+	if (oplus_adfr_is_support()) {
+		dsi_mode.vsync_source = panel_dsi_mode->vsync_source;
+	}
+#endif
+
 	rc = dsi_display_validate_mode(c_bridge->display, &dsi_mode,
 			DSI_VALIDATE_FLAG_ALLOW_ADJUST);
 	if (rc) {
@@ -539,6 +550,10 @@ static bool dsi_bridge_mode_fixup(struct drm_bridge *bridge,
 				dsi_mode.panel_mode_caps);
 		}
 	}
+#ifdef OPLUS_BUG_STABILITY
+	if (display->is_cont_splash_enabled)
+		dsi_mode.dsi_mode_flags &= ~DSI_MODE_FLAG_DMS;
+#endif /* OPLUS_BUG_STABILITY */
 
 	/* Reject seamless transition when active changed */
 	if (crtc_state->active_changed &&

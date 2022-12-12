@@ -94,6 +94,15 @@
 #define CHECK_LAYER_BOUNDS(offset, size, max_size) \
 	(((size) > (max_size)) || ((offset) > ((max_size) - (size))))
 
+#ifdef OPLUS_BUG_STABILITY
+#include <soc/oplus/system/oplus_mm_kevent_fb.h>
+#define SDE_MM_ERROR(fmt, ...) \
+	do { \
+		pr_err("[sde error]" fmt, ##__VA_ARGS__); \
+		mm_fb_display_kevent_named(MM_FB_KEY_RATELIMIT_1H, fmt, ##__VA_ARGS__); \
+	} while(0)
+#endif /* OPLUS_BUG_STABILITY */
+
 /**
  * ktime_compare_safe - compare two ktime structures
  *	This macro is similar to the standard ktime_compare() function, but
@@ -483,10 +492,10 @@ void *sde_debugfs_get_root(struct sde_kms *sde_kms);
  * These functions/definitions allow for building up a 'sde_info' structure
  * containing one or more "key=value\n" entries.
  */
-#if IS_ENABLED(CONFIG_DRM_LOW_MSM_MEM_FOOTPRINT)
-#define SDE_KMS_INFO_MAX_SIZE	(1 << 12)
+#ifdef OPLUS_BUG_STABILITY
+#define SDE_KMS_INFO_MAX_SIZE	8192
 #else
-#define SDE_KMS_INFO_MAX_SIZE	(1 << 14)
+#define SDE_KMS_INFO_MAX_SIZE	4096
 #endif
 
 /**

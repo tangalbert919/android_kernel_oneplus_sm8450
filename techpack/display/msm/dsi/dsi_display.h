@@ -19,6 +19,9 @@
 #include "dsi_ctrl.h"
 #include "dsi_phy.h"
 #include "dsi_panel.h"
+#ifdef OPLUS_BUG_STABILITY
+#include "../oplus/oplus_dsi_support.h"
+#endif /*OPLUS_BUG_STABILITY*/
 
 #define MAX_DSI_CTRLS_PER_DISPLAY             2
 #define DSI_CLIENT_NAME_SIZE		20
@@ -210,6 +213,7 @@ struct dsi_display {
 	bool sw_te_using_wd;
 	struct mutex display_lock;
 	int disp_te_gpio;
+	int disp_te_gpio_1;
 	bool is_te_irq_enabled;
 	struct completion esd_te_gate;
 
@@ -285,6 +289,11 @@ struct dsi_display {
 
 	u32 te_source;
 	u32 clk_gating_config;
+#if defined(OPLUS_FEATURE_PXLW_IRIS5)
+	u32 off;
+	u32 cnt;
+	u8 cmd_data_type;
+#endif
 	bool queue_cmd_waits;
 	struct workqueue_struct *post_cmd_tx_workq;
 
@@ -299,6 +308,15 @@ struct dsi_display {
 	struct dsi_panel_cmd_set cmd_set;
 
 	bool enabled;
+#ifdef OPLUS_BUG_STABILITY
+	/* save qsync info, then restore qsync status after panel enable*/
+	bool need_qsync_restore;
+	/* force close qysnc window when qsync mode is on before panel enable */
+	bool force_qsync_mode_off;
+	uint32_t current_qsync_mode;
+	uint32_t current_qsync_dynamic_min_fps;
+	struct completion switch_te_gate;
+#endif
 };
 
 int dsi_display_dev_probe(struct platform_device *pdev);
@@ -780,6 +798,17 @@ enum dsi_pixel_format dsi_display_get_dst_format(
  */
 int dsi_display_cont_splash_config(void *display);
 
+#ifdef OPLUS_BUG_STABILITY
+struct dsi_display *get_main_display(void);
+
+struct dsi_display *get_sec_display(void);
+
+/* Add for implement panel register read */
+int dsi_host_alloc_cmd_tx_buffer(struct dsi_display *display);
+int dsi_display_cmd_engine_enable(struct dsi_display *display);
+int dsi_display_cmd_engine_disable(struct dsi_display *display);
+#endif
+
 /**
  * dsi_display_cont_splash_res_disable() - Disable resource votes added in probe
  * @display:    Pointer to dsi display
@@ -831,4 +860,29 @@ int dsi_display_restore_bit_clk(struct dsi_display *display, struct dsi_display_
 bool dsi_display_mode_match(const struct dsi_display_mode *mode1,
 		struct dsi_display_mode *mode2, unsigned int match_flags);
 
+#ifdef OPLUS_BUG_STABILITY
+/* add oplus_panel_event_notification_trigger */
+/**
+ * oplus_panel_event_notification_trigger() - display notifi
+ * @display:       dsi_display to be compared
+ * @panel_event_notification_type:       notif_type to be compared
+ * Return: Zero on Success
+ */
+int oplus_panel_event_notification_trigger(struct dsi_display *display, enum panel_event_notification_type notif_type);
+
+/* add oplus_display_event_data_notifier_trigger */
+/**
+ * oplus_display_event_data_notifier_trigger() - oplus event notification with data
+ * @display:                       Point to dsi_display
+ * @panel_event_notifier_tag:      Type of panel
+ * @panel_event_notification_type: Type of notifier
+ * @data:                          Data to be notified
+ * Return: Zero on Success
+ */
+int oplus_display_event_data_notifier_trigger(struct dsi_display *display,
+		enum panel_event_notifier_tag panel_type,
+		enum panel_event_notification_type notif_type,
+		u32 data);
+
+#endif /* OPLUS_BUG_STABILITY */
 #endif /* _DSI_DISPLAY_H_ */

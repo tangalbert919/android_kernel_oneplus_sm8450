@@ -49,7 +49,11 @@
 #define SDE_ENCODER_FRAME_EVENT_SIGNAL_RETIRE_FENCE	BIT(4)
 #define SDE_ENCODER_FRAME_EVENT_CWB_DONE		BIT(5)
 
+#ifdef OPLUS_BUG_STABILITY
+#define IDLE_POWERCOLLAPSE_DURATION	(80 - 16/2)
+#else
 #define IDLE_POWERCOLLAPSE_DURATION	(66 - 16/2)
+#endif
 #define IDLE_POWERCOLLAPSE_IN_EARLY_WAKEUP (200 - 16/2)
 
 /* below this fps limit, timeouts are adjusted based on fps */
@@ -113,6 +117,22 @@ enum sde_enc_rc_states {
 };
 
 /**
+ * struct sde_encoder_ops - callback functions for generic sde encoder
+ * Individual callbacks documented below.
+ */
+struct sde_encoder_ops {
+	/**
+	 * phys_init - phys initialization function
+	 * @type: controller type
+	 * @controller_id: controller id
+	 * @phys_init_params: Pointer of structure sde_enc_phys_init_params
+	 * Returns: Pointer of sde_encoder_phys, NULL if failed
+	 */
+	void *(*phys_init)(enum sde_intf_type type,
+			u32 controller_id, void *phys_init_params);
+};
+
+/**
  * struct sde_encoder_virt - virtual encoder. Container of one or more physical
  *	encoders. Virtual encoder manages one "logical" display. Physical
  *	encoders manage one intf block, tied to a specific panel/sub-panel.
@@ -122,6 +142,7 @@ enum sde_enc_rc_states {
  * @enc_spin_lock:	Virtual-Encoder-Wide Spin Lock for IRQ purposes
  * @bus_scaling_client:	Client handle to the bus scaling interface
  * @te_source:		vsync source pin information
+ * @ops:		Encoder ops from init function
  * @num_phys_encs:	Actual number of physical encoders contained.
  * @phys_encs:		Container of physical encoders managed.
  * @phys_vid_encs:	Video physical encoders for panel mode switch.
@@ -201,6 +222,8 @@ struct sde_encoder_virt {
 	uint32_t display_num_of_h_tiles;
 	uint32_t te_source;
 
+	struct sde_encoder_ops ops;
+
 	unsigned int num_phys_encs;
 	struct sde_encoder_phys *phys_encs[MAX_PHYS_ENCODERS_PER_VIRTUAL];
 	struct sde_encoder_phys *phys_vid_encs[MAX_PHYS_ENCODERS_PER_VIRTUAL];
@@ -240,6 +263,9 @@ struct sde_encoder_virt {
 	struct kthread_work input_event_work;
 	struct kthread_work esd_trigger_work;
 	struct input_handler *input_handler;
+#if defined(OPLUS_FEATURE_PXLW_IRIS5)
+	struct kthread_work disable_autorefresh_work;
+#endif
 	bool vblank_enabled;
 	bool idle_pc_restore;
 	enum frame_trigger_mode_type frame_trigger_mode;
@@ -258,7 +284,33 @@ struct sde_encoder_virt {
 	struct msm_mode_info mode_info;
 	bool delay_kickoff;
 	bool autorefresh_solver_disable;
+#ifdef OPLUS_BUG_STABILITY
+	struct hrtimer fakeframe_timer;
+	struct kthread_work fakeframe_work;
+	uint32_t cur_mode_hdisplay;
+#endif
 };
+
+#ifdef OPLUS_BUG_STABILITY
+/**
+ * Add for backlight smooths
+ * @g_pri_bk_level: global backlight of the primary screen
+ * @g_sec_bk_level: global backlight of the secondary screen
+ * @g_save_pcc: global pcc save for debug
+ */
+struct oplus_apollo_bk {
+	u32 g_pri_bk_level;
+	u32 g_sec_bk_level;
+};
+
+enum oplus_sync_method {
+	OPLUS_PREPARE_KICKOFF_METHOD = 0,
+	OPLUS_KICKOFF_METHOD,
+	OPLUS_POST_KICKOFF_METHOD,
+	OPLUS_WAIT_VSYNC_METHOD,
+	OPLUS_UNKNOW_METHOD,
+};
+#endif /* OPLUS_BUG_STABILITY */
 
 #define to_sde_encoder_virt(x) container_of(x, struct sde_encoder_virt, base)
 
@@ -679,6 +731,38 @@ static inline bool sde_encoder_is_widebus_enabled(struct drm_encoder *drm_enc)
 	sde_enc = to_sde_encoder_virt(drm_enc);
 	return sde_enc->mode_info.wide_bus_en;
 }
+
+#if defined(OPLUS_FEATURE_PXLW_IRIS5)
+/**
+ * sde_encoder_rc_lock - lock the sde encoder resource control.
+ * @drm_enc:    Pointer to drm encoder structure
+ * @Return:     void.
+ */
+void sde_encoder_rc_lock(struct drm_encoder *drm_enc);
+
+/**
+ * sde_encoder_rc_unlock - unlock the sde encoder resource control.
+ * @drm_enc:    Pointer to drm encoder structure
+ * @Return:     void.
+ */
+void sde_encoder_rc_unlock(struct drm_encoder *drm_enc);
+
+/**
+ * sde_encoder_disable_autorefresh - disable autorefresh
+ * @drm_enc:    Pointer to drm encoder structure
+ * @Return:     void.
+ */
+void sde_encoder_disable_autorefresh_handler(struct drm_encoder *drm_enc);
+#endif
+
+#ifdef OPLUS_BUG_STABILITY
+/**
+ * sde_encoder_is_disabled - encoder is disabled
+ * @drm_enc:    Pointer to drm encoder structure
+ * @Return:     bool.
+ */
+bool sde_encoder_is_disabled(struct drm_encoder *drm_enc);
+#endif
 
 void sde_encoder_add_data_to_minidump_va(struct drm_encoder *drm_enc);
 #endif /* __SDE_ENCODER_H__ */

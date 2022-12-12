@@ -37,6 +37,12 @@
 #include "sde_vbif.h"
 #include "sde_plane.h"
 #include "sde_color_processing.h"
+#ifdef OPLUS_BUG_STABILITY
+#include "../oplus/oplus_display_private_api.h"
+#endif
+#if defined(OPLUS_FEATURE_PXLW_IRIS5)
+#include "iris/dsi_iris5_api.h"
+#endif
 
 #define SDE_DEBUG_PLANE(pl, fmt, ...) SDE_DEBUG("plane%d " fmt,\
 		(pl) ? (pl)->base.base.id : -1, ##__VA_ARGS__)
@@ -1152,6 +1158,9 @@ static inline void _sde_plane_setup_csc(struct sde_plane *psde)
 	else
 		psde->csc_ptr = (struct sde_csc_cfg *)&sde_csc_YUV2RGB_601L;
 
+#if defined(OPLUS_FEATURE_PXLW_IRIS5)
+	iris_sde_plane_setup_csc(psde->csc_ptr);
+#endif
 	SDE_DEBUG_PLANE(psde, "using 0x%X 0x%X 0x%X...\n",
 			psde->csc_ptr->csc_mv[0],
 			psde->csc_ptr->csc_mv[1],
@@ -3290,9 +3299,9 @@ static void _sde_plane_check_lut_dirty(struct sde_plane *psde,
 	struct sde_plane_state *pstate)
 {
 	/**
-	 * Valid configuration if scaler is not enabled or
-	 * lut flag is set
-	 */
+	* Valid configuration if scaler is not enabled or
+	* lut flag is set
+	*/
 	if (pstate->scaler3_cfg.lut_flag || !pstate->scaler3_cfg.enable)
 		return;
 
