@@ -24,6 +24,11 @@
 #include "cam_cpas_api.h"
 #include "cam_ife_hw_mgr.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+//lanhe add
+#include "cam_vfe_hw_intf.h"
+#endif
+
 static const char isp_dev_name[] = "cam-isp";
 
 static struct cam_isp_ctx_debug isp_ctx_debug;
@@ -849,7 +854,7 @@ static int cam_isp_ctx_dump_req(
 }
 
 static int __cam_isp_ctx_enqueue_request_in_order(
-	struct cam_context *ctx, struct cam_ctx_request *req)
+	struct cam_context *ctx, struct cam_ctx_request *req, bool lock)
 {
 	struct cam_ctx_request           *req_current;
 	struct cam_ctx_request           *req_prev;
@@ -857,7 +862,8 @@ static int __cam_isp_ctx_enqueue_request_in_order(
 	struct cam_isp_context           *ctx_isp;
 
 	INIT_LIST_HEAD(&temp_list);
-	spin_lock_bh(&ctx->lock);
+	if (lock)
+		spin_lock_bh(&ctx->lock);
 	if (list_empty(&ctx->pending_req_list)) {
 		list_add_tail(&req->list, &ctx->pending_req_list);
 	} else {
@@ -888,7 +894,8 @@ static int __cam_isp_ctx_enqueue_request_in_order(
 	ctx_isp = (struct cam_isp_context *) ctx->ctx_priv;
 	__cam_isp_ctx_update_event_record(ctx_isp,
 		CAM_ISP_CTX_EVENT_SUBMIT, req);
-	spin_unlock_bh(&ctx->lock);
+	if (lock)
+		spin_unlock_bh(&ctx->lock);
 	return 0;
 }
 
@@ -1242,7 +1249,11 @@ static void __cam_isp_ctx_send_sof_boot_timestamp(
 static void __cam_isp_ctx_send_unified_timestamp(
 	struct cam_isp_context *ctx_isp, uint64_t request_id)
 {
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	struct cam_req_mgr_message   req_msg = {0};
+#else
 	struct cam_req_mgr_message   req_msg;
+#endif
 
 	req_msg.session_hdl = ctx_isp->base->session_hdl;
 	req_msg.u.frame_msg_v2.frame_id = ctx_isp->frame_id;
@@ -1320,7 +1331,12 @@ static void __cam_isp_ctx_send_sof_timestamp(
 		return;
 	}
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	if ((ctx_isp->use_frame_header_ts) && (request_id) &&
+		(sof_event_status == CAM_REQ_MGR_SOF_EVENT_SUCCESS))
+#else
 	if ((ctx_isp->use_frame_header_ts) || (request_id == 0))
+#endif
 		goto end;
 
 	req_msg.session_hdl = ctx_isp->base->session_hdl;
@@ -1548,6 +1564,11 @@ static int __cam_isp_ctx_handle_buf_done_for_req_list(
 
 	if (atomic_read(&ctx_isp->internal_recovery_set) && !ctx_isp->active_req_cnt)
 		__cam_isp_context_try_internal_recovery(ctx_isp);
+
+	if (ctx_isp->try_reapply_count > 0) {
+		ctx_isp->try_reapply_count = 0;
+		ctx_isp->reapply_req_id = -1;
+	}
 
 	cam_cpas_notify_event("IFE BufDone", buf_done_req_id);
 
@@ -2236,6 +2257,21 @@ static int __cam_isp_ctx_handle_buf_done_verify_addr(
 				req->request_id);
 	}
 
+    /*
+     * we get the buf done before the reg upd.
+     * the consumed address for wait req, otherwise, we
+     * can't verify the consumed address.
+     */
+    if (ctx_isp->active_req_cnt == 1) {
+        if (!list_empty(&ctx->wait_req_list)) {
+        	next_req = list_first_entry(&ctx->wait_req_list,
+        			struct cam_ctx_request, list);
+
+        	__cam_isp_ctx_buf_done_match_req(next_req, done,
+        		&irq_delay_detected);
+        }
+	}
+
 	/*
 	 * If irq delay isn't detected, then we need to verify
 	 * the consumed address for current req, otherwise, we
@@ -2517,6 +2553,7 @@ static int __cam_isp_ctx_notify_sof_in_activated_state(
 	uint64_t last_cdm_done_req = 0;
 	struct cam_isp_hw_epoch_event_data *epoch_done_event_data =
 			(struct cam_isp_hw_epoch_event_data *)evt_data;
+	char trace[64] = {0};
 
 	if (!evt_data) {
 		CAM_ERR(CAM_ISP, "invalid event data");
@@ -2623,8 +2660,13 @@ notify_only:
 			}
 		}
 
-		if (ctx_isp->substate_activated == CAM_ISP_CTX_ACTIVATED_BUBBLE)
+		if (ctx_isp->substate_activated == CAM_ISP_CTX_ACTIVATED_BUBBLE) {
 			request_id = 0;
+			memset(trace, 0, sizeof(trace));
+			snprintf(trace, sizeof(trace), "KMD %d_4 Skip Frame", ctx->link_hdl);
+			trace_int(trace, 0);
+			trace_begin_end("Req[%lld] CAM_ISP_CTX_ACTIVATED_BUBBLE", req->request_id);
+		}
 
 		if (request_id != 0)
 			ctx_isp->reported_req_id = request_id;
@@ -3102,6 +3144,79 @@ static uint32_t get_evt_param(uint32_t error_type)
 	}
 }
 
+static int __cam_isp_ctx_trigger_error_req_reapply(
+	struct cam_isp_context *ctx_isp)
+{
+	int                             rc = 0;
+	struct cam_ctx_request          *req = NULL;
+	struct cam_ctx_request          *req_to_reapply = NULL;
+	struct cam_ctx_request          *req_temp;
+	struct cam_isp_ctx_req          *req_isp = NULL;
+	struct cam_context              *ctx = ctx_isp->base;
+
+	/*
+	 * For bus overflow and CSID FIFO or recovery module
+	 * backpressure overflow, we try to do internal hw reset
+	 * and restart and notify CRM to do reapply with the
+	 * help of bubble control flow.
+	 */
+	if (list_empty(&ctx->active_req_list)) {
+		CAM_DBG(CAM_ISP,
+			"handling error with no active request");
+		if (list_empty(&ctx->wait_req_list)) {
+			CAM_INFO_RATE_LIMIT(CAM_ISP,
+				"Error with no active/wait request");
+			rc = -EINVAL;
+			goto end;
+		}
+	}
+
+	if (!list_empty(&ctx->wait_req_list)) {
+		list_for_each_entry_safe_reverse(req, req_temp,
+			&ctx->wait_req_list, list) {
+			list_del_init(&req->list);
+			__cam_isp_ctx_enqueue_request_in_order(ctx, req, false);
+			CAM_DBG(CAM_ISP, "move wait req %llu to pending, ctx %u",
+				req->request_id, ctx->ctx_id);
+		}
+	}
+	if (!list_empty(&ctx->active_req_list)) {
+		list_for_each_entry_safe_reverse(req, req_temp,
+			&ctx->active_req_list, list) {
+			list_del_init(&req->list);
+			__cam_isp_ctx_enqueue_request_in_order(ctx, req, false);
+			ctx_isp->active_req_cnt--;
+			CAM_DBG(CAM_ISP, "move active req %llu to pending, ctx %u",
+				req->request_id, ctx->ctx_id);
+		}
+	}
+
+	req_to_reapply = list_first_entry(&ctx->pending_req_list,
+		struct cam_ctx_request, list);
+	req_isp = (struct cam_isp_ctx_req *)req_to_reapply->req_priv;
+	ctx_isp->substate_activated = CAM_ISP_CTX_ACTIVATED_EPOCH;
+	ctx_isp->reapply_req_id = req_to_reapply->request_id;
+
+	CAM_INFO_RATE_LIMIT(CAM_ISP, "ctx:%d Notify CRM to reapply req:%lld",
+		ctx->ctx_id, req_to_reapply->request_id);
+
+	rc = __cam_isp_ctx_notify_error_util(CAM_TRIGGER_POINT_SOF, CRM_KMD_ERR_BUBBLE,
+		req_to_reapply->request_id, ctx_isp);
+	if (rc) {
+		/* Unable to notify CRM to do reapply back to normal */
+		CAM_WARN(CAM_ISP,
+			"ctx:%d Unable to notify CRM for req %lld",
+			ctx->ctx_id, ctx_isp->reapply_req_id);
+		ctx_isp->reapply_req_id = -1;
+		goto end;
+	}
+
+	CAM_DBG(CAM_ISP, "Handling reapply done on ctx: %u", ctx->ctx_id);
+
+end:
+	return rc;
+}
+
 static int __cam_isp_ctx_handle_error(struct cam_isp_context *ctx_isp,
 	void *evt_data)
 {
@@ -3124,6 +3239,7 @@ static int __cam_isp_ctx_handle_error(struct cam_isp_context *ctx_isp,
 			(struct cam_isp_hw_error_event_data *)evt_data;
 
 	uint32_t error_type = error_event_data->error_type;
+	uint32_t error_code = error_event_data->error_code;
 
 	CAM_DBG(CAM_ISP, "Enter error_type = %d", error_type);
 
@@ -3132,9 +3248,20 @@ static int __cam_isp_ctx_handle_error(struct cam_isp_context *ctx_isp,
 
 	if ((error_type == CAM_ISP_HW_ERROR_OVERFLOW) ||
 		(error_type == CAM_ISP_HW_ERROR_BUSIF_OVERFLOW) ||
-		(error_type == CAM_ISP_HW_ERROR_VIOLATION))
+		(error_type == CAM_ISP_HW_ERROR_VIOLATION)) {
 		__cam_isp_ctx_trigger_reg_dump(CAM_HW_MGR_CMD_REG_DUMP_ON_ERROR, ctx);
 
+		if (error_event_data->recovery_enabled &&
+			(error_type != CAM_ISP_HW_ERROR_VIOLATION) &&
+			(!(error_code & CAM_REQ_MGR_CSID_PIXEL_COUNT_MISMATCH)) &&
+			(ctx_isp->try_reapply_count < 1)) {
+			ctx_isp->try_reapply_count++;
+			rc = __cam_isp_ctx_trigger_error_req_reapply(ctx_isp);
+			if (rc == 0)
+				goto exit;
+		}
+		ctx_isp->reapply_req_id = -1;
+	}
 	evt_param = get_evt_param(error_type);
 
 	/*
@@ -3292,9 +3419,11 @@ end:
 		goto exit;
 
 	error = CRM_KMD_ERR_FATAL;
+	/* qcom case 056203864 to remove this part to fix stuck 10s
 	if (req_isp_to_report && req_isp_to_report->bubble_report)
 		if (error_event_data->recovery_enabled)
 			error = CRM_KMD_ERR_BUBBLE;
+	*/
 
 	__cam_isp_ctx_notify_error_util(CAM_TRIGGER_POINT_SOF, error,
 		error_request_id, ctx_isp);
@@ -3987,6 +4116,19 @@ static int __cam_isp_ctx_apply_req_in_activated_state(
 			apply->request_id);
 		rc = -EAGAIN;
 		goto end;
+	}
+
+	if (ctx_isp->reapply_req_id != -1) {
+		if (apply->request_id != ctx_isp->reapply_req_id) {
+			CAM_INFO_RATE_LIMIT(CAM_ISP,
+				"ctx_id:%d Re-apply Invalid Id asking %llu existing %lld",
+				ctx->ctx_id,
+				apply->request_id,
+				ctx_isp->reapply_req_id);
+			rc = -EAGAIN;
+			goto end;
+		} else
+			ctx_isp->reapply_req_id = -1;
 	}
 
 	spin_lock_bh(&ctx->lock);
@@ -5504,6 +5646,8 @@ static int __cam_isp_ctx_release_hw_in_top_state(struct cam_context *ctx,
 	ctx_isp->aeb_enabled = false;
 	ctx_isp->do_internal_recovery = false;
 	ctx_isp->req_info.last_bufdone_req_id = 0;
+	ctx_isp->try_reapply_count = 0;
+	ctx_isp->reapply_req_id = -1;
 
 	atomic64_set(&ctx_isp->state_monitor_head, -1);
 
@@ -5746,7 +5890,7 @@ static int __cam_isp_ctx_config_dev_in_top_state(
 		}
 
 		if (ctx_isp->offline_context) {
-			__cam_isp_ctx_enqueue_request_in_order(ctx, req);
+			__cam_isp_ctx_enqueue_request_in_order(ctx, req, true);
 		} else if (ctx->ctx_crm_intf->add_req) {
 			memset(&add_req, 0, sizeof(add_req));
 			add_req.link_hdl = ctx->link_hdl;
@@ -5758,7 +5902,7 @@ static int __cam_isp_ctx_config_dev_in_top_state(
 					req->request_id);
 			} else {
 				__cam_isp_ctx_enqueue_request_in_order(
-					ctx, req);
+					ctx, req, true);
 			}
 		} else {
 			CAM_ERR(CAM_ISP, "Unable to add request: req id=%llu", req->request_id);
@@ -6291,7 +6435,10 @@ static int __cam_isp_ctx_acquire_hw_v2(struct cam_context *ctx,
 	param.acquire_info_size = cmd->data_size;
 	param.acquire_info = (uint64_t) acquire_hw_info;
 	param.mini_dump_cb = __cam_isp_ctx_minidump_cb;
-
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+    //lanhe add
+    param.op_flags |= cmd->reserved;
+#endif
 	/* call HW manager to reserve the resource */
 	rc = ctx->hw_mgr_intf->hw_acquire(ctx->hw_mgr_intf->hw_mgr_priv,
 		&param);
@@ -6324,6 +6471,9 @@ static int __cam_isp_ctx_acquire_hw_v2(struct cam_context *ctx,
 
 	if ((ctx_isp->aeb_enabled) && (!isp_ctx_debug.disable_internal_recovery))
 		ctx_isp->do_internal_recovery = true;
+
+	ctx_isp->try_reapply_count = 0;
+	ctx_isp->reapply_req_id = -1;
 
 	/* Query the context has rdi only resource */
 	hw_cmd_args.ctxt_to_hw_map = param.ctxt_to_hw_map;
@@ -7229,6 +7379,33 @@ static int __cam_isp_ctx_handle_irq_in_activated(void *context,
 		(struct cam_isp_context *)ctx->ctx_priv;
 
 	spin_lock(&ctx->lock);
+#ifdef OPLUS_FEATURE_CAMERA_COMMON //lanhe todo:
+	if(evt_id == CAM_ISP_HW_EVENT_SOF)
+	{
+		uint32_t res_id =
+			((struct cam_isp_hw_sof_event_data *)evt_data)->res_id;
+		if(res_id == CAM_ISP_HW_VFE_IN_RDI0)
+		{
+			struct cam_req_mgr_trigger_notify  notify;
+			ctx_isp->rdi_frame_id++;
+			//add process logic
+			if (ctx_isp->subscribe_event & CAM_TRIGGER_POINT_SOF) {
+				notify.link_hdl = ctx->link_hdl;
+				notify.dev_hdl = ctx->dev_hdl;
+				notify.frame_id = ctx_isp->rdi_frame_id;
+				notify.trigger = CAM_TRIGGER_POINT_RDI_SOF;
+				notify.req_id = ctx_isp->req_info.last_bufdone_req_id;
+				notify.sof_timestamp_val = ctx_isp->sof_timestamp_val;
+
+				ctx->ctx_crm_intf->notify_trigger(&notify);
+				CAM_DBG(CAM_ISP, "Notify CRM  RDI SOF frame %lld",
+					ctx_isp->rdi_frame_id);
+			}
+			spin_unlock(&ctx->lock);
+			return rc;
+		}
+	}
+#endif
 	trace_cam_isp_activated_irq(ctx, ctx_isp->substate_activated, evt_id,
 		__cam_isp_ctx_get_event_ts(evt_id, evt_data));
 
@@ -7545,6 +7722,9 @@ int cam_isp_context_init(struct cam_isp_context *ctx,
 
 	ctx->base = ctx_base;
 	ctx->frame_id = 0;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON //lanhe todo:
+	ctx->rdi_frame_id = 0;
+#endif
 	ctx->custom_enabled = false;
 	ctx->use_frame_header_ts = false;
 	ctx->use_default_apply = false;

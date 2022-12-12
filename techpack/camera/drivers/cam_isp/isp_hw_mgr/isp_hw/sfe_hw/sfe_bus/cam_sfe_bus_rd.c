@@ -431,6 +431,8 @@ static int cam_sfe_bus_release_rm(void          *bus_priv,
 	rsrc_data->unpacker_cfg = 0;
 	rsrc_data->burst_len = 0;
 	rsrc_data->en_cfg = 0;
+	rsrc_data->enable_caching =  false;
+	rsrc_data->offset = 0;
 
 	rm_res->tasklet_info = NULL;
 	rm_res->res_state = CAM_ISP_RESOURCE_STATE_AVAILABLE;
@@ -490,9 +492,7 @@ static int cam_sfe_bus_stop_rm(struct cam_isp_resource_node *rm_res)
 	cam_io_w_mb(0x0, common_data->mem_base + rsrc_data->hw_regs->cfg);
 
 	rm_res->res_state = CAM_ISP_RESOURCE_STATE_RESERVED;
-	rsrc_data->enable_caching =  false;
 	rsrc_data->enable_disable_cfg_done = false;
-	rsrc_data->offset = 0;
 
 	CAM_DBG(CAM_SFE, "SFE:%d RM:%d stopped",
 		rsrc_data->common_data->core_index, rsrc_data->index);

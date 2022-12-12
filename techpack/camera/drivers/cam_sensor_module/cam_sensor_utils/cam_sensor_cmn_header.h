@@ -262,7 +262,22 @@ struct cam_camera_slave_info {
 	uint16_t sensor_id_reg_addr;
 	uint16_t sensor_id;
 	uint16_t sensor_id_mask;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	uint8_t  addr_type;
+	uint8_t  data_type;
+#endif
 };
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+struct cam_camera_id_info {
+	uint16_t sensor_slave_addr;
+	uint16_t sensor_id_mask;
+	uint32_t sensor_id_reg_addr;
+	uint32_t sensor_id;
+	uint8_t sensor_addr_type;
+	uint8_t sensor_data_type;
+};
+#endif
 
 struct msm_sensor_init_params {
 	int modes_supported;
@@ -311,6 +326,9 @@ struct cam_sensor_power_setting {
 
 struct cam_sensor_board_info {
 	struct cam_camera_slave_info slave_info;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	struct cam_camera_id_info id_info;
+#endif
 	int32_t sensor_mount_angle;
 	int32_t secure_mode;
 	int modes_supported;
@@ -330,6 +348,7 @@ enum msm_camera_vreg_name_t {
 	CAM_VAF,
 	CAM_V_CUSTOM1,
 	CAM_V_CUSTOM2,
+	CAM_VANA1,
 	CAM_VREG_MAX,
 };
 

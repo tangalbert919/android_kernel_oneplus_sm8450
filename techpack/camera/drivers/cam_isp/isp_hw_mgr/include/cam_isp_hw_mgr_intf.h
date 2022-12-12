@@ -41,7 +41,10 @@
 #define CAM_IFE_CTX_APPLY_DEFAULT_CFG  BIT(3)
 #define CAM_IFE_CTX_SFE_EN             BIT(4)
 #define CAM_IFE_CTX_AEB_EN             BIT(5)
-
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+//lanhe add
+#define CAM_IFE_CTX_RDI_SOF_EN         BIT(31)
+#endif
 /*
  * Maximum configuration entry size  - This is based on the
  * worst case DUAL IFE use case plus some margin.
@@ -269,6 +272,9 @@ struct cam_isp_prepare_hw_update_data {
  *
  */
 struct cam_isp_hw_sof_event_data {
+#ifdef OPLUS_FEATURE_CAMERA_COMMON//lanhe todo
+	uint32_t       res_id;
+#endif
 	uint64_t       timestamp;
 	uint64_t       boot_time;
 };

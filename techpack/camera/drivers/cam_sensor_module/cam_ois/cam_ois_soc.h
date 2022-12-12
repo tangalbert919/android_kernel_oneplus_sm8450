@@ -7,6 +7,10 @@
 
 #include "cam_ois_dev.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#include "oplus_cam_ois_soc.h"
+#endif
+
 int cam_ois_driver_soc_init(struct cam_ois_ctrl_t *o_ctrl);
 
 #endif/* _CAM_OIS_SOC_H_ */

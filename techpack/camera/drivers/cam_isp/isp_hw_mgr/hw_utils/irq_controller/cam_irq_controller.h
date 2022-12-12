@@ -38,7 +38,7 @@ enum cam_irq_event_group {
 	CAM_IRQ_EVT_GROUP_2,
 };
 
-#define CAM_IRQ_MAX_DEPENDENTS 2
+//#define CAM_IRQ_MAX_DEPENDENTS 2
 
 /*
  * struct cam_irq_register_set:

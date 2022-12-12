@@ -12,7 +12,7 @@
 #include "cam_ife_csid_common.h"
 #include "cam_ife_csid_hw_ver2.h"
 #include "cam_irq_controller.h"
-
+#ifndef OPLUS_FEATURE_CAMERA_COMMON
 static struct cam_ife_csid_ver2_reg_info cam_ife_csid_680_110_reg_info = {
 	.irq_reg_info                         = &cam_ife_csid_680_irq_reg_info,
 	.cmn_reg                              = &cam_ife_csid_680_cmn_reg_info,
@@ -61,4 +61,5 @@ static struct cam_ife_csid_ver2_reg_info cam_ife_csid_680_110_reg_info = {
 	.rx_irq_desc        = cam_ife_csid_680_rx_irq_desc,
 	.path_irq_desc      = cam_ife_csid_680_path_irq_desc,
 };
+#endif
 #endif /*_CAM_IFE_CSID_680_110_H_ */

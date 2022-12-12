@@ -114,8 +114,8 @@ struct cam_ife_sfe_scratch_buf_info {
  *
  */
 struct cam_sfe_scratch_buf_cfg {
-	uint32_t                            num_config;
-	uint32_t                            updated_num_exp;
+	uint32_t                        num_config;
+	uint32_t                        updated_num_exp;
 	struct cam_ife_sfe_scratch_buf_info buf_info[
 		CAM_SFE_FE_RDI_NUM_MAX];
 };
@@ -194,6 +194,10 @@ struct cam_ife_hw_mgr_ctx_flags {
 	bool   is_aeb_mode;
 	bool   rdi_lcr_en;
 	bool   sys_cache_usage[CAM_LLCC_MAX];
+#ifdef OPLUS_FEATURE_CAMERA_COMMON//lanhe todo
+	bool   use_rdi_sof;
+#endif
+
 };
 
 /**

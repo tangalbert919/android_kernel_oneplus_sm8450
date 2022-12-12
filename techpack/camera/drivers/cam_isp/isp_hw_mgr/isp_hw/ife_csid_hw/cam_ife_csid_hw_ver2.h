@@ -75,8 +75,6 @@
 #define IFE_CSID_VER2_CUST_NODE_IDX_1                      0x2
 #define IFE_CSID_VER2_CUST_NODE_IDX_2                      0x4
 
-#define IFE_CSID_VER2_TOP_IRQ_STATUS_BUF_DONE                    BIT(13)
-
 enum cam_ife_csid_ver2_input_core_sel {
 	CAM_IFE_CSID_INPUT_CORE_SEL_NONE,
 	CAM_IFE_CSID_INPUT_CORE_SEL_INTERNAL,
@@ -113,7 +111,7 @@ struct cam_ife_csid_ver2_top_cfg {
 
 struct cam_ife_csid_ver2_evt_payload {
 	struct list_head            list;
-	uint32_t                    irq_reg_val[CAM_IFE_CSID_IRQ_REG_MAX];
+	uint32_t                    irq_reg_val;
 };
 
 /*
@@ -192,6 +190,7 @@ struct cam_ife_csid_ver2_path_cfg {
 	uint32_t                             qcfa_bin;
 	uint32_t                             hor_ver_bin;
 	uint32_t                             num_bytes_out;
+	uint32_t                             top_irq_handle;
 	uint32_t                             irq_handle;
 	uint32_t                             err_irq_handle;
 	uint32_t                             discard_irq_handle;
@@ -492,8 +491,11 @@ struct cam_ife_csid_ver2_common_reg_info {
 };
 
 struct cam_ife_csid_ver2_reg_info {
-	struct cam_irq_controller_reg_info               *irq_reg_info;
+	struct cam_irq_controller_reg_info               *top_irq_reg_info;
+	struct cam_irq_controller_reg_info               *rx_irq_reg_info;
 	struct cam_irq_controller_reg_info               *buf_done_irq_reg_info;
+	struct cam_irq_controller_reg_info               *path_irq_reg_info[
+		CAM_IFE_PIX_PATH_RES_MAX];
 	const struct cam_ife_csid_ver2_common_reg_info   *cmn_reg;
 	const struct cam_ife_csid_csi2_rx_reg_info       *csi2_reg;
 	const struct cam_ife_csid_ver2_path_reg_info     *path_reg[
@@ -566,7 +568,9 @@ struct cam_ife_csid_ver2_hw {
 	spinlock_t                             lock_state;
 	spinlock_t                             path_payload_lock;
 	spinlock_t                             rx_payload_lock;
-	void                                  *csid_irq_controller;
+	void                                  *top_irq_controller;
+	void                                  *rx_irq_controller;
+	void                                  *path_irq_controller[CAM_IFE_PIX_PATH_RES_MAX];
 	void                                  *buf_done_irq_controller;
 	struct cam_hw_intf                    *hw_intf;
 	struct cam_hw_info                    *hw_info;

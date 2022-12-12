@@ -2643,7 +2643,7 @@ static int cam_tfe_mgr_config_hw(void *hw_mgr_priv,
 	if (cfg->reapply_type && cfg->cdm_reset_before_apply) {
 		if (ctx->last_cdm_done_req < cfg->request_id) {
 			cdm_hang_detect =
-				cam_cdm_detect_hang_error(ctx->cdm_handle);
+				cam_cdm_detect_hang_error(ctx->cdm_handle, CAM_ISP);
 			CAM_ERR_RATE_LIMIT(CAM_ISP,
 				"CDM callback not received for req: %lld, last_cdm_done_req: %lld, cdm_hang_detect: %d",
 				cfg->request_id, ctx->last_cdm_done_req,
@@ -2785,7 +2785,7 @@ static int cam_tfe_mgr_config_hw(void *hw_mgr_priv,
 			msecs_to_jiffies(
 			CAM_TFE_HW_CONFIG_TIMEOUT));
 		if (rc <= 0) {
-			if (!cam_cdm_detect_hang_error(ctx->cdm_handle)) {
+			if (!cam_cdm_detect_hang_error(ctx->cdm_handle, CAM_ISP)) {
 				CAM_ERR(CAM_ISP,
 					"CDM workqueue delay detected, wait for some more time req_id=%llu rc=%d ctx_index %d",
 					cfg->request_id, rc,

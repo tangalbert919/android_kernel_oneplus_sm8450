@@ -22,6 +22,14 @@
 
 static struct cam_isp_dev g_isp_dev;
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#include <linux/moduleparam.h>
+
+bool enable_cphy_crash = false;
+module_param(enable_cphy_crash, bool, 0644);
+EXPORT_SYMBOL(enable_cphy_crash);
+#endif
+
 static void cam_isp_dev_iommu_fault_handler(struct cam_smmu_pf_info *pf_info)
 {
 	int i = 0;
@@ -118,6 +126,10 @@ static int cam_isp_dev_component_bind(struct device *dev,
 
 	rc = of_property_read_string_index(pdev->dev.of_node, "arch-compat", 0,
 		(const char **)&compat_str);
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	enable_cphy_crash = of_property_read_bool(pdev->dev.of_node, "enable-cphy-crash");
+#endif
 
 	g_isp_dev.sd.internal_ops = &cam_isp_subdev_internal_ops;
 	g_isp_dev.sd.close_seq_prior = CAM_SD_CLOSE_HIGH_PRIORITY;

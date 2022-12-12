@@ -24,6 +24,7 @@
 #include "cam_tasklet_util.h"
 #include "cam_common_util.h"
 #include "cam_subdev.h"
+#include "soc/oplus/system/oplus_project.h"
 
 #define IFE_CSID_TIMEOUT                               1000
 
@@ -4422,12 +4423,21 @@ static int cam_ife_csid_ver1_path_top_half(
 	irq_reg_tag = cam_ife_csid_get_irq_reg_tag_ptr();
 
 	while (debug_bits) {
-		if ((debug_bits & 0x1))
-			CAM_INFO_RATE_LIMIT(CAM_ISP,
-				"CSID[%d] IRQ %s %s ",
-				csid_hw->hw_intf->hw_idx,
-				irq_reg_tag[index],
-				ver1_path_irq_desc[bit_pos]);
+		if (get_eng_version( ) == AGING) {
+		    if ((debug_bits & 0x1))
+			    CAM_INFO(CAM_ISP,
+				    "CSID[%d] IRQ %s %s ",
+				    csid_hw->hw_intf->hw_idx,
+				    irq_reg_tag[index],
+				    ver1_path_irq_desc[bit_pos]);
+		}else{
+			if ((debug_bits & 0x1))
+			    CAM_INFO_RATE_LIMIT(CAM_ISP,
+				    "CSID[%d] IRQ %s %s ",
+				    csid_hw->hw_intf->hw_idx,
+				    irq_reg_tag[index],
+				    ver1_path_irq_desc[bit_pos]);
+		}
 
 		bit_pos++;
 		debug_bits >>= 1;
@@ -4463,13 +4473,17 @@ static irqreturn_t cam_ife_csid_irq(int irq_num, void *data)
 	csid_reg = (struct cam_ife_csid_ver1_reg_info *)
 			csid_hw->core_info->csid_reg;
 	soc_info = &csid_hw->hw_info->soc_info;
-	memset(status, 0, sizeof(status));
+	//memset(status, 0, sizeof(status));
 
 	spin_lock_irqsave(&csid_hw->hw_info->hw_lock, flags);
 
 	status[CAM_IFE_CSID_IRQ_REG_TOP] =
 		cam_io_r_mb(soc_info->reg_map[0].mem_base +
 		csid_reg->cmn_reg->top_irq_status_addr);
+	if(status[CAM_IFE_CSID_IRQ_REG_TOP] == 0)
+	{
+                CAM_INFO(CAM_ISP, "The value of top status register is zero, will not clear the bit set of the irq clear register");
+        }
 	cam_io_w_mb(status[CAM_IFE_CSID_IRQ_REG_TOP],
 		soc_info->reg_map[0].mem_base +
 		csid_reg->cmn_reg->top_irq_clear_addr);

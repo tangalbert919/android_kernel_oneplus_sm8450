@@ -411,4 +411,26 @@ int cam_get_ddr_type(void)
 {
 	return of_fdt_get_ddrtype();
 }
+
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+void dev_defer_supplier_debug(void *drv_ptr)
+{
+	struct device *match_dev = NULL;
+	match_dev = bus_find_device(&platform_bus_type, NULL, drv_ptr, &camera_platform_compare_dev);
+	if (match_dev) {
+		struct device_link *link;
+		list_for_each_entry(link, &match_dev->links.suppliers, c_node) {
+			if (!(link->flags & DL_FLAG_MANAGED))
+				continue;
+
+			if (link->status != DL_STATE_AVAILABLE &&
+					!(link->flags & DL_FLAG_SYNC_STATE_ONLY)) {
+				dev_err(match_dev, "probe deferral - supplier %s not ready\n",
+						dev_name(link->supplier));
+			}
+		}
+	}
+	put_device(match_dev);
+}
+#endif
 #endif

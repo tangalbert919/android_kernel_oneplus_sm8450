@@ -395,5 +395,10 @@ int cam_eeprom_parse_dt(struct cam_eeprom_ctrl_t *e_ctrl)
 			soc_info->rgltr_name[i]);
 	}
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	CAM_INFO(CAM_EEPROM, "calling eprom devm reg=%d", soc_info->num_rgltr);
+
+	cam_eeprom_parse_dt_oem(e_ctrl, of_node);
+#endif
 	return rc;
 }

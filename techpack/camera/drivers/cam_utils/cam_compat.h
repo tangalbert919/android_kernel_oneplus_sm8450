@@ -60,5 +60,8 @@ int cam_req_mgr_ordered_list_cmp(void *priv,
 int cam_req_mgr_ordered_list_cmp(void *priv,
 	struct list_head *head_1, struct list_head *head_2);
 #endif
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+void dev_defer_supplier_debug(void *drv_ptr);
+#endif
 
 #endif /* _CAM_COMPAT_H_ */

@@ -11,6 +11,10 @@
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
 
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#include "oplus_cam_actuator_core.h"
+#endif
+
 int32_t cam_actuator_construct_default_power_setting(
 	struct cam_sensor_power_ctrl_t *power_info)
 {
@@ -274,6 +278,9 @@ int32_t cam_actuator_apply_settings(struct cam_actuator_ctrl_t *a_ctrl,
 				"Success:request ID: %d",
 				i2c_set->request_id);
 		}
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+                a_ctrl->is_actuator_ready = FALSE;
+#endif
 	}
 
 	return rc;
@@ -583,6 +590,9 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 		}
 
 		if (a_ctrl->cam_act_state == CAM_ACTUATOR_ACQUIRE) {
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+                        cam_actuator_poll_setting_update(a_ctrl);
+#endif
 			rc = cam_actuator_power_up(a_ctrl);
 			if (rc < 0) {
 				CAM_ERR(CAM_ACTUATOR,
@@ -591,7 +601,9 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 			}
 			a_ctrl->cam_act_state = CAM_ACTUATOR_CONFIG;
 		}
-
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+                cam_actuator_poll_setting_apply(a_ctrl);
+#endif
 		rc = cam_actuator_apply_settings(a_ctrl,
 			&a_ctrl->i2c_data.init_settings);
 		if (rc < 0) {

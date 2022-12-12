@@ -228,6 +228,30 @@ camera-$(CONFIG_SPECTRA_SENSOR) += \
 	drivers/cam_sensor_module/cam_flash/cam_flash_core.o \
 	drivers/cam_sensor_module/cam_flash/cam_flash_soc.o
 
+camera-$(CONFIG_SPECTRA_OPLUS) += \
+	drivers/oplus/cam_sensor_module/cam_sensor/oplus_cam_sensor_core.o \
+	drivers/oplus/cam_sensor_module/cam_eeprom/oplus_cam_eeprom_dev.o \
+	drivers/oplus/cam_sensor_module/cam_eeprom/oplus_cam_eeprom_soc.o \
+	drivers/oplus/cam_sensor_module/cam_eeprom/oplus_cam_eeprom_core.o \
+	drivers/oplus/cam_sensor_module/cam_flash/oplus_cam_flash_dev.o \
+	drivers/oplus/cam_sensor_module/cam_ois/oplus_cam_ois_soc.o \
+	drivers/oplus/cam_sensor_module/cam_ois/onsemi_fw/fw_download_interface.o \
+	drivers/oplus/cam_sensor_module/cam_ois/onsemi_fw/LC898124/DownloadCmd.o \
+	drivers/oplus/cam_sensor_module/cam_ois/onsemi_fw/LC898129/PhoneUpdate.o \
+	drivers/oplus/cam_sensor_module/cam_ois/onsemi_fw/LC898128/PhoneUpdate128.o \
+	drivers/oplus/cam_sensor_module/cam_ois/onsemi_fw/BU24721/bu24721_fw.o \
+	drivers/oplus/cam_sensor_module/cam_actuator/oplus_cam_actuator_core.o
+
+camera-$(CONFIG_LEDS_QPNP_FLASH_V2) += \
+	drivers/cam_sensor_module/cam_flash/cam_flash_dev.o \
+	drivers/cam_sensor_module/cam_flash/cam_flash_core.o \
+	drivers/cam_sensor_module/cam_flash/cam_flash_soc.o
+
+camera-$(CONFIG_LEDS_QTI_FLASH) += \
+	drivers/cam_sensor_module/cam_flash/cam_flash_dev.o \
+	drivers/cam_sensor_module/cam_flash/cam_flash_core.o \
+	drivers/cam_sensor_module/cam_flash/cam_flash_soc.o
+
 camera-$(CONFIG_SPECTRA_CUSTOM) += \
 	drivers/cam_cust/cam_custom_hw_mgr/cam_custom_hw1/cam_custom_sub_mod_soc.o \
 	drivers/cam_cust/cam_custom_hw_mgr/cam_custom_hw1/cam_custom_sub_mod_dev.o \

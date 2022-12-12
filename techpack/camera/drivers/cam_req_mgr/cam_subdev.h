@@ -35,6 +35,18 @@ enum cam_subdev_rwsem {
 };
 
 /**
+ struct cam_subdev_msg_payload - describes a subdev message payload
+ *
+ * @hw_idx            : Hw index of the recipent module
+ * @priv_data         : Private data
+ *
+ */
+struct cam_subdev_msg_payload {
+	uint8_t                                hw_idx;
+	void                                  *priv_data;
+};
+
+/**
  * struct cam_subdev - describes a camera sub-device
  *
  * @pdev:                  Pointer to the platform device

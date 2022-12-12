@@ -838,6 +838,8 @@ static int cam_sfe_bus_release_wm(void   *bus_priv,
 	rsrc_data->hfr_cfg_done = false;
 	rsrc_data->en_cfg = 0;
 	rsrc_data->is_dual = 0;
+	rsrc_data->enable_caching =  false;
+	rsrc_data->offset = 0;
 
 	wm_res->tasklet_info = NULL;
 	wm_res->res_state = CAM_ISP_RESOURCE_STATE_AVAILABLE;
@@ -922,8 +924,6 @@ static int cam_sfe_bus_stop_wm(struct cam_isp_resource_node *wm_res)
 	wm_res->res_state = CAM_ISP_RESOURCE_STATE_RESERVED;
 	rsrc_data->init_cfg_done = false;
 	rsrc_data->hfr_cfg_done = false;
-	rsrc_data->enable_caching =  false;
-	rsrc_data->offset = 0;
 
 	return 0;
 }

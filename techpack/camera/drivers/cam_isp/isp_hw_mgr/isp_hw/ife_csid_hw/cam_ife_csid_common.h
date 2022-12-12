@@ -12,7 +12,7 @@
 
 #define CAM_IFE_CSID_VER_1_0  0x100
 #define CAM_IFE_CSID_VER_2_0  0x200
-#define CAM_IFE_CSID_MAX_ERR_COUNT  100
+#define CAM_IFE_CSID_MAX_ERR_COUNT  1
 
 #define CAM_IFE_CSID_HW_CAP_IPP                           0x1
 #define CAM_IFE_CSID_HW_CAP_RDI                           0x2
@@ -237,6 +237,7 @@ struct cam_ife_csid_csi2_rx_reg_info {
 	uint32_t fatal_err_mask;
 	uint32_t part_fatal_err_mask;
 	uint32_t non_fatal_err_mask;
+	uint32_t phy_recovery_mask;
 	uint32_t debug_irq_mask;
 	uint32_t top_irq_mask;
 };
@@ -269,11 +270,13 @@ struct cam_ife_csid_core_info {
  * @csi2_reserve_cnt:       Reserve count for csi2
  * @irq_debug_cnt:          irq debug counter
  * @error_irq_count:        error irq counter
+ * @crc_error_count:        monitors crc errors only
  */
 struct cam_ife_csid_hw_counters {
 	uint32_t                          csi2_reserve_cnt;
 	uint32_t                          irq_debug_cnt;
 	uint32_t                          error_irq_count;
+	uint32_t                          crc_error_count;
 };
 
 /*
@@ -309,6 +312,8 @@ struct cam_ife_csid_hw_flags {
 	bool                  sof_irq_triggered;
 	bool                  process_reset;
 	bool                  fatal_err_detected;
+	bool                  false_fatal_err_detected;
+	bool                  csi2_stopped;
 	bool                  rx_enabled;
 	bool                  tpg_enabled;
 	bool                  tpg_configured;
@@ -316,6 +321,10 @@ struct cam_ife_csid_hw_flags {
 	bool                  offline_mode;
 	bool                  rdi_lcr_en;
 	bool                  sfe_en;
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+	//lanhe add
+	bool                  use_rdi_sof;
+#endif
 };
 
 /*
@@ -355,6 +364,7 @@ struct cam_ife_csid_rx_cfg  {
 	uint32_t                        tpg_num_sel;
 	uint32_t                        mup;
 	uint32_t                        epd_supported;
+	uint32_t                        top_irq_handle;
 	uint32_t                        irq_handle;
 	uint32_t                        err_irq_handle;
 	bool                            dynamic_sensor_switch_en;

@@ -10,6 +10,9 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 #include <media/cam_defs.h>
+#ifdef OPLUS_FEATURE_CAMERA_COMMON
+#include "oplus/media/oplus_cam_sensor.h"
+#endif
 
 #define CAM_SENSOR_PROBE_CMD      (CAM_COMMON_OPCODE_MAX + 1)
 #define CAM_FLASH_MAX_LED_TRIGGERS 2

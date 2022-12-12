@@ -305,12 +305,56 @@ static struct cam_irq_register_set cam_ife_csid_680_irq_reg_set[9] = {
 	},
 };
 
-static struct cam_irq_controller_reg_info cam_ife_csid_680_irq_reg_info = {
-	.num_registers = 9,
-	.irq_reg_set = cam_ife_csid_680_irq_reg_set,
+static struct cam_irq_controller_reg_info cam_ife_csid_680_top_irq_reg_info = {
+	.num_registers = 1,
+	.irq_reg_set = &cam_ife_csid_680_irq_reg_set[0],
 	.global_clear_offset  = 0x00000014,
 	.global_clear_bitmask = 0x00000001,
 	.clear_all_bitmask = 0xFFFFFFFF,
+};
+
+static struct cam_irq_controller_reg_info cam_ife_csid_680_rx_irq_reg_info = {
+	.num_registers = 1,
+	.irq_reg_set = &cam_ife_csid_680_irq_reg_set[1], /* RX */
+	.global_clear_offset  = 0, /* intentionally set to zero */
+};
+
+static struct cam_irq_controller_reg_info cam_ife_csid_680_path_irq_reg_info[7] = {
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[2], /* RDI0 */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[3], /* RDI1 */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[4], /* RDI2 */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[5], /* RDI3 */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[6], /* RDI4 */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[7], /* IPP */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
+	{
+		.num_registers = 1,
+		.irq_reg_set = &cam_ife_csid_680_irq_reg_set[8], /* PPP */
+		.global_clear_offset  = 0, /* intentionally set to zero */
+	},
 };
 
 static struct cam_irq_register_set cam_ife_csid_680_buf_done_irq_reg_set[1] = {
@@ -1076,6 +1120,7 @@ static struct cam_ife_csid_csi2_rx_reg_info
 		.fatal_err_mask                  = 0x19FA800,
 		.part_fatal_err_mask             = 0x0001000,
 		.non_fatal_err_mask              = 0x0200000,
+		.phy_recovery_mask               = 0x18BB800,
 		.top_irq_mask                    = 0x4,
 };
 
@@ -1187,11 +1232,20 @@ static struct cam_ife_csid_ver2_top_reg_info
 };
 
 static struct cam_ife_csid_ver2_reg_info cam_ife_csid_680_reg_info = {
-	.irq_reg_info                         = &cam_ife_csid_680_irq_reg_info,
+	.top_irq_reg_info      = &cam_ife_csid_680_top_irq_reg_info,
+	.rx_irq_reg_info       = &cam_ife_csid_680_rx_irq_reg_info,
+	.path_irq_reg_info     = {
+		&cam_ife_csid_680_path_irq_reg_info[0],
+		&cam_ife_csid_680_path_irq_reg_info[1],
+		&cam_ife_csid_680_path_irq_reg_info[2],
+		&cam_ife_csid_680_path_irq_reg_info[3],
+		&cam_ife_csid_680_path_irq_reg_info[4],
+		&cam_ife_csid_680_path_irq_reg_info[5],
+		&cam_ife_csid_680_path_irq_reg_info[6],
+	},
+	.buf_done_irq_reg_info = &cam_ife_csid_680_buf_done_irq_reg_info,
 	.cmn_reg                              = &cam_ife_csid_680_cmn_reg_info,
 	.csi2_reg                             = &cam_ife_csid_680_csi2_reg_info,
-	.buf_done_irq_reg_info                =
-				    &cam_ife_csid_680_buf_done_irq_reg_info,
 	.path_reg[CAM_IFE_PIX_PATH_RES_IPP]   = &cam_ife_csid_680_ipp_reg_info,
 	.path_reg[CAM_IFE_PIX_PATH_RES_PPP]   = &cam_ife_csid_680_ppp_reg_info,
 	.path_reg[CAM_IFE_PIX_PATH_RES_RDI_0] = &cam_ife_csid_680_rdi_0_reg_info,

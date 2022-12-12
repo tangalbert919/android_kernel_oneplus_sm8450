@@ -27,6 +27,9 @@
  */
 #define CAM_ISP_RES_NAME_LEN      16
 
+/* Access core_info of isp resource node */
+#define cam_isp_res_core_info(res) (((struct cam_hw_info *)res->hw_intf->hw_priv)->core_info)
+
 enum cam_isp_bw_control_action {
 	CAM_ISP_BW_CONTROL_EXCLUDE       = 0,
 	CAM_ISP_BW_CONTROL_INCLUDE       = 1
