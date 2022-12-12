@@ -4,6 +4,10 @@
 #ifndef __WCD_MBHC_V2_H__
 #define __WCD_MBHC_V2_H__
 
+#ifndef OPLUS_ARCH_EXTENDS
+#define OPLUS_ARCH_EXTENDS
+#endif /* OPLUS_ARCH_EXTENDS */
+
 #include <linux/wait.h>
 #include <linux/stringify.h>
 #include <linux/power_supply.h>
@@ -11,6 +15,9 @@
 #include <linux/extcon-provider.h>
 #include "wcdcal-hwdep.h"
 #include <sound/jack.h>
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+#include <linux/pm_wakeup.h>
+#endif
 
 #define TOMBAK_MBHC_NC	0
 #define TOMBAK_MBHC_NO	1
@@ -137,9 +144,17 @@ do {                                                    \
 				  SND_JACK_BTN_2 | SND_JACK_BTN_3 | \
 				  SND_JACK_BTN_4 | SND_JACK_BTN_5)
 #define OCP_ATTEMPT 20
+#ifndef OPLUS_ARCH_EXTENDS
 #define HS_DETECT_PLUG_TIME_MS (3 * 1000)
+#else /* OPLUS_ARCH_EXTENDS */
+#define HS_DETECT_PLUG_TIME_MS (5 * 1000)
+#endif /* OPLUS_ARCH_EXTENDS */
 #define SPECIAL_HS_DETECT_TIME_MS (2 * 1000)
+#ifndef OPLUS_ARCH_EXTENDS
 #define MBHC_BUTTON_PRESS_THRESHOLD_MIN 250
+#else /* OPLUS_ARCH_EXTENDS */
+#define MBHC_BUTTON_PRESS_THRESHOLD_MIN 1000
+#endif /* OPLUS_ARCH_EXTENDS */
 #define GND_MIC_SWAP_THRESHOLD 4
 #define GND_MIC_USBC_SWAP_THRESHOLD 2
 #define WCD_FAKE_REMOVAL_MIN_PERIOD_MS 100
@@ -153,6 +168,10 @@ do {                                                    \
 #define WCD_MBHC_BTN_PRESS_COMPL_TIMEOUT_MS  50
 #define ANC_DETECT_RETRY_CNT 7
 #define WCD_MBHC_SPL_HS_CNT  1
+
+#ifdef OPLUS_ARCH_EXTENDS
+#define HIGH_HPH_DETECT_RETRY_CNT 5
+#endif
 
 enum wcd_mbhc_detect_logic {
 	WCD_DETECTION_LEGACY,
@@ -553,6 +572,9 @@ struct wcd_mbhc {
 	wait_queue_head_t wait_btn_press;
 	bool is_btn_press;
 	u8 current_plug;
+	#ifdef OPLUS_ARCH_EXTENDS
+	u8 plug_before_ssr;
+	#endif /* OPLUS_ARCH_EXTENDS */
 	bool in_swch_irq_handler;
 	bool hphl_swh; /*track HPHL switch NC / NO */
 	bool gnd_swh; /*track GND switch NC / NO */
@@ -623,6 +645,37 @@ struct wcd_mbhc {
 	struct notifier_block fsa_nb;
 
 	struct extcon_dev *extdev;
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool usbc_l_det_en;
+	unsigned long usbc_mode;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool need_cross_conn;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	struct delayed_work hp_detect_work;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool irq_trigger_enable;
+	struct delayed_work mech_irq_trigger_dwork;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool headset_micbias_alwayon;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#ifdef OPLUS_ARCH_EXTENDS
+	bool enable_hp_impedance_detect;
+	#endif /* OPLUS_ARCH_EXTENDS */
+
+	#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+	struct delayed_work hp_irq_chk_work;
+	struct wakeup_source *hp_wake_lock;
+	#endif /* OPLUS_FEATURE_MM_FEEDBACK */
 };
 
 void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,

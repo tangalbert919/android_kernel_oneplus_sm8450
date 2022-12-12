@@ -44,14 +44,28 @@
 #define TX_MACRO_ADC_MUX_CFG_OFFSET 0x8
 #define TX_MACRO_ADC_MODE_CFG0_SHIFT 1
 
+#ifndef OPLUS_ARCH_EXTENDS
 #define TX_MACRO_DMIC_UNMUTE_DELAY_MS	40
+#else /* OPLUS_ARCH_EXTENDS */
+#define TX_MACRO_DMIC_UNMUTE_DELAY_MS	50
+#endif /* OPLUS_ARCH_EXTENDS */
 #define TX_MACRO_AMIC_UNMUTE_DELAY_MS	100
 #define TX_MACRO_DMIC_HPF_DELAY_MS	300
 #define TX_MACRO_AMIC_HPF_DELAY_MS	300
 
+#ifndef OPLUS_ARCH_EXTENDS
 static int tx_unmute_delay = TX_MACRO_DMIC_UNMUTE_DELAY_MS;
 module_param(tx_unmute_delay, int, 0664);
 MODULE_PARM_DESC(tx_unmute_delay, "delay to unmute the tx path");
+#else /* OPLUS_ARCH_EXTENDS */
+static int tx_amic_unmute_delay = TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+module_param(tx_amic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_amic_unmute_delay, "delay to unmute the tx amic path");
+
+static int tx_dmic_unmute_delay = TX_MACRO_DMIC_UNMUTE_DELAY_MS;
+module_param(tx_dmic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_dmic_unmute_delay, "delay to unmute the tx dmic path");
+#endif /* OPLUS_ARCH_EXTENDS */
 
 static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
 
@@ -495,7 +509,12 @@ static bool is_amic_enabled(struct snd_soc_component *component, int decimator)
 	adc_mux_reg = BOLERO_CDC_TX_INP_MUX_ADC_MUX0_CFG1 +
 			TX_MACRO_ADC_MUX_CFG_OFFSET * decimator;
 	if (snd_soc_component_read(component, adc_mux_reg) & SWR_MIC) {
+		#ifndef OPLUS_ARCH_EXTENDS
 		if (tx_priv->version == BOLERO_VERSION_2_1)
+		#else /* OPLUS_ARCH_EXTENDS */
+		if (tx_priv->version == BOLERO_VERSION_2_1 ||
+			tx_priv->version == BOLERO_VERSION_2_0)
+		#endif /* OPLUS_ARCH_EXTENDS */
 			return true;
 		adc_reg = BOLERO_CDC_TX_INP_MUX_ADC_MUX0_CFG0 +
 			TX_MACRO_ADC_MUX_CFG_OFFSET * decimator;
@@ -1096,16 +1115,32 @@ static int tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 						TX_HPF_CUT_OFF_FREQ_MASK,
 						CF_MIN_3DB_150HZ << 5);
 
+		#ifndef OPLUS_ARCH_EXTENDS
 		if (is_amic_enabled(component, decimator)) {
 			hpf_delay = TX_MACRO_AMIC_HPF_DELAY_MS;
 			unmute_delay = TX_MACRO_AMIC_UNMUTE_DELAY_MS;
 		}
 		if (tx_unmute_delay < unmute_delay)
 			tx_unmute_delay = unmute_delay;
+		#else /* OPLUS_ARCH_EXTENDS */
+		if (is_amic_enabled(component, decimator)) {
+			hpf_delay = TX_MACRO_AMIC_HPF_DELAY_MS;
+			unmute_delay = TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+			if (unmute_delay < tx_amic_unmute_delay)
+				unmute_delay = tx_amic_unmute_delay;
+		} else {
+			if (unmute_delay < tx_dmic_unmute_delay)
+				unmute_delay = tx_dmic_unmute_delay;
+		}
+		#endif /* OPLUS_ARCH_EXTENDS */
 		/* schedule work queue to Remove Mute */
 		queue_delayed_work(system_freezable_wq,
 				   &tx_priv->tx_mute_dwork[decimator].dwork,
+				   #ifndef OPLUS_ARCH_EXTENDS
 				   msecs_to_jiffies(tx_unmute_delay));
+				   #else /* OPLUS_ARCH_EXTENDS */
+				   msecs_to_jiffies(unmute_delay));
+				   #endif /* OPLUS_ARCH_EXTENDS */
 		if (tx_priv->tx_hpf_work[decimator].hpf_cut_off_freq !=
 							CF_MIN_3DB_150HZ) {
 			queue_delayed_work(system_freezable_wq,

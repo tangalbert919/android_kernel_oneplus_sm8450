@@ -18,6 +18,9 @@
 #include <dsp/audio_prm.h>
 #include <dsp/spf-core.h>
 #include <dsp/audio_notifier.h>
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+#include "feedback/oplus_audio_kernel_fb.h"
+#endif
 
 #define TIMEOUT_MS 500
 #define MAX_RETRY_COUNT 3
@@ -112,6 +115,9 @@ static int prm_gpr_send_pkt(struct gpr_pkt *pkt, wait_queue_head_t *wait)
 	ret = gpr_send_pkt(g_prm.adev, pkt);
 	if (ret < 0) {
 		pr_err("%s: packet not transmitted %d\n", __func__, ret);
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+		ratelimited_fb("payload@@audio_prm:packet not transmitted,ret=%d", ret);
+#endif
 		mutex_unlock(&g_prm.lock);
 		return ret;
 	}
@@ -123,9 +129,15 @@ static int prm_gpr_send_pkt(struct gpr_pkt *pkt, wait_queue_head_t *wait)
 		if (!ret) {
 			pr_err("%s: pkt send timeout\n", __func__);
 			ret = -ETIMEDOUT;
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+			ratelimited_fb("payload@@audio_prm:pkt send timeout,ret=%d", ret);
+#endif
 		} else if (atomic_read(&g_prm.status) > 0) {
 			pr_err("%s: DSP returned error %d\n", __func__,
 				atomic_read(&g_prm.status));
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_MM_FEEDBACK)
+			ratelimited_fb("payload@@audio_prm:DSP returned error,ret=%d", atomic_read(&g_prm.status));
+#endif
 			ret = -EINVAL;
 		} else {
 			ret = 0;

@@ -42,14 +42,28 @@
 #define LPASS_CDC_TX_MACRO_ADC_MUX_CFG_OFFSET 0x8
 #define LPASS_CDC_TX_MACRO_ADC_MODE_CFG0_SHIFT 1
 
+#ifndef OPLUS_ARCH_EXTENDS
 #define LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS	40
+#else /* OPLUS_ARCH_EXTENDS */
+#define LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS	50
+#endif /* OPLUS_ARCH_EXTENDS */
 #define LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS	100
 #define LPASS_CDC_TX_MACRO_DMIC_HPF_DELAY_MS	300
 #define LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS	300
 
+#ifndef OPLUS_ARCH_EXTENDS
 static int tx_unmute_delay = LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS;
 module_param(tx_unmute_delay, int, 0664);
 MODULE_PARM_DESC(tx_unmute_delay, "delay to unmute the tx path");
+#else /* OPLUS_ARCH_EXTENDS */
+static int tx_amic_unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+module_param(tx_amic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_amic_unmute_delay, "delay to unmute the tx amic path");
+
+static int tx_dmic_unmute_delay = LPASS_CDC_TX_MACRO_DMIC_UNMUTE_DELAY_MS;
+module_param(tx_dmic_unmute_delay, int, 0664);
+MODULE_PARM_DESC(tx_dmic_unmute_delay, "delay to unmute the tx dmic path");
+#endif /* OPLUS_ARCH_EXTENDS */
 
 static const DECLARE_TLV_DB_SCALE(digital_gain, 0, 1, 0);
 
@@ -128,7 +142,10 @@ struct lpass_cdc_tx_macro_priv {
 	int tx_mclk_users;
 	bool dapm_mclk_enable;
 	struct mutex mclk_lock;
-	struct mutex wlock;
+#ifdef OPLUS_ARCH_EXTENDS
+	 struct mutex wlock;
+#endif /* OPLUS_ARCH_EXTENDS */
+
 	struct snd_soc_component *component;
 	struct hpf_work tx_hpf_work[NUM_DECIMATORS];
 	struct tx_mute_work tx_mute_dwork[NUM_DECIMATORS];
@@ -147,9 +164,12 @@ struct lpass_cdc_tx_macro_priv {
 	bool hs_slow_insert_complete;
 	int pcm_rate[NUM_DECIMATORS];
 	bool swr_dmic_enable;
+#ifdef OPLUS_ARCH_EXTENDS
 	int wlock_holders;
+#endif /* OPLUS_ARCH_EXTENDS */
 };
 
+#ifdef OPLUS_ARCH_EXTENDS
 static int lpass_cdc_tx_macro_wake_enable(struct lpass_cdc_tx_macro_priv *tx_priv,
 					bool wake_enable)
 {
@@ -172,6 +192,7 @@ static int lpass_cdc_tx_macro_wake_enable(struct lpass_cdc_tx_macro_priv *tx_pri
 	mutex_unlock(&tx_priv->wlock);
 	return ret;
 }
+#endif /* OPLUS_ARCH_EXTENDS */
 
 static bool lpass_cdc_tx_macro_get_data(struct snd_soc_component *component,
 			      struct device **tx_dev,
@@ -455,7 +476,9 @@ static void lpass_cdc_tx_macro_tx_hpf_corner_freq_callback(struct work_struct *w
 		snd_soc_component_update_bits(component, hpf_gate_reg,
 						0x02, 0x00);
 	}
+#ifdef OPLUS_ARCH_EXTENDS
 	lpass_cdc_tx_macro_wake_enable(tx_priv, 0);
+#endif /* OPLUS_ARCH_EXTENDS */
 }
 
 static void lpass_cdc_tx_macro_mute_update_callback(struct work_struct *work)
@@ -479,7 +502,9 @@ static void lpass_cdc_tx_macro_mute_update_callback(struct work_struct *work)
 	snd_soc_component_update_bits(component, tx_vol_ctl_reg, 0x10, 0x00);
 	dev_dbg(tx_priv->dev, "%s: decimator %u unmute\n",
 		__func__, decimator);
+#ifdef OPLUS_ARCH_EXTENDS
 	lpass_cdc_tx_macro_wake_enable(tx_priv, 0);
+#endif /* OPLUS_ARCH_EXTENDS */
 }
 
 static int lpass_cdc_tx_macro_put_dec_enum(struct snd_kcontrol *kcontrol,
@@ -614,8 +639,18 @@ static int lpass_cdc_tx_macro_tx_mixer_put(struct snd_kcontrol *kcontrol,
 		set_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
 		tx_priv->active_ch_cnt[dai_id]++;
 	} else {
+#if 1//def OPLUS_BUG_COMPATIBILITY
+		if (tx_priv->active_ch_cnt[dai_id] > 0) {
+			tx_priv->active_ch_cnt[dai_id]--;
+			clear_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
+		} else {
+			pr_err("%s: dai_id:%d, active_ch_cnt: %d\n", __func__,
+				dai_id, tx_priv->active_ch_cnt[dai_id]);
+		}
+#else /* OPLUS_BUG_COMPATIBILITY */
 		tx_priv->active_ch_cnt[dai_id]--;
 		clear_bit(dec_id, &tx_priv->active_ch_mask[dai_id]);
+#endif /* OPLUS_BUG_COMPATIBILITY */
 	}
 	snd_soc_dapm_mixer_update_power(widget->dapm, kcontrol, enable, update);
 
@@ -748,7 +783,7 @@ static int lpass_cdc_tx_macro_swr_dmic_get(struct snd_kcontrol *kcontrol,
 	struct device *tx_dev = NULL;
 
 	if (!lpass_cdc_tx_macro_get_data(component, &tx_dev, &tx_priv, __func__))
-	return -EINVAL;
+		return -EINVAL;
 
 	ucontrol->value.integer.value[0] = tx_priv->swr_dmic_enable;
 
@@ -961,20 +996,40 @@ static int lpass_cdc_tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 						TX_HPF_CUT_OFF_FREQ_MASK,
 						CF_MIN_3DB_150HZ << 5);
 
+		#ifndef OPLUS_ARCH_EXTENDS
 		if (is_amic_enabled(component, decimator)) {
 			hpf_delay = LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS;
 			unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
 		}
 		if (tx_unmute_delay < unmute_delay)
 			tx_unmute_delay = unmute_delay;
+		#else /* OPLUS_ARCH_EXTENDS */
+		if (is_amic_enabled(component, decimator)) {
+			hpf_delay = LPASS_CDC_TX_MACRO_AMIC_HPF_DELAY_MS;
+			unmute_delay = LPASS_CDC_TX_MACRO_AMIC_UNMUTE_DELAY_MS;
+			if (unmute_delay < tx_amic_unmute_delay)
+				unmute_delay = tx_amic_unmute_delay;
+		} else {
+			if (unmute_delay < tx_dmic_unmute_delay)
+				unmute_delay = tx_dmic_unmute_delay;
+		}
+		#endif /* OPLUS_ARCH_EXTENDS */
+#ifdef OPLUS_ARCH_EXTENDS
 		lpass_cdc_tx_macro_wake_enable(tx_priv, 1);
+#endif /* OPLUS_ARCH_EXTENDS */
 		/* schedule work queue to Remove Mute */
 		queue_delayed_work(system_freezable_wq,
 				   &tx_priv->tx_mute_dwork[decimator].dwork,
+				   #ifndef OPLUS_ARCH_EXTENDS
 				   msecs_to_jiffies(tx_unmute_delay));
+				   #else /* OPLUS_ARCH_EXTENDS */
+				   msecs_to_jiffies(unmute_delay));
+				   #endif /* OPLUS_ARCH_EXTENDS */
 		if (tx_priv->tx_hpf_work[decimator].hpf_cut_off_freq !=
 							CF_MIN_3DB_150HZ) {
+#ifdef OPLUS_ARCH_EXTENDS
 			lpass_cdc_tx_macro_wake_enable(tx_priv, 1);
+#endif /* OPLUS_ARCH_EXTENDS */
 			queue_delayed_work(system_freezable_wq,
 				&tx_priv->tx_hpf_work[decimator].dwork,
 				msecs_to_jiffies(hpf_delay));
@@ -1039,10 +1094,14 @@ static int lpass_cdc_tx_macro_enable_dec(struct snd_soc_dapm_widget *w,
 						0x03, 0x01);
 			}
 		}
+#ifdef OPLUS_ARCH_EXTENDS
 		lpass_cdc_tx_macro_wake_enable(tx_priv, 0);
+#endif /* OPLUS_ARCH_EXTENDS */
 		cancel_delayed_work_sync(
 				&tx_priv->tx_mute_dwork[decimator].dwork);
+#ifdef OPLUS_ARCH_EXTENDS
 		lpass_cdc_tx_macro_wake_enable(tx_priv, 0);
+#endif /* OPLUS_ARCH_EXTENDS */
 
 		if (snd_soc_component_read(component, adc_mux_reg)
 						& SWR_MIC)
@@ -2073,7 +2132,9 @@ static int lpass_cdc_tx_macro_probe(struct platform_device *pdev)
 	}
 	tx_priv->tx_io_base = tx_io_base;
 	tx_priv->swr_dmic_enable = false;
+#ifdef OPLUS_ARCH_EXTENDS
 	tx_priv->wlock_holders = 0;
+#endif /* OPLUS_ARCH_EXTENDS */
 	ret = of_property_read_u32(pdev->dev.of_node, dmic_sample_rate,
 				   &sample_rate);
 	if (ret) {
@@ -2088,7 +2149,9 @@ static int lpass_cdc_tx_macro_probe(struct platform_device *pdev)
 	}
 
 	mutex_init(&tx_priv->mclk_lock);
+#ifdef OPLUS_ARCH_EXTENDS
 	mutex_init(&tx_priv->wlock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	lpass_cdc_tx_macro_init_ops(&ops, tx_io_base);
 	ops.clk_id_req = TX_CORE_CLK;
 	ops.default_clk_id = TX_CORE_CLK;
@@ -2107,7 +2170,9 @@ static int lpass_cdc_tx_macro_probe(struct platform_device *pdev)
 	return 0;
 err_reg_macro:
 	mutex_destroy(&tx_priv->mclk_lock);
+#ifdef OPLUS_ARCH_EXTENDS
 	mutex_destroy(&tx_priv->wlock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	return ret;
 }
 
@@ -2123,7 +2188,9 @@ static int lpass_cdc_tx_macro_remove(struct platform_device *pdev)
 	pm_runtime_disable(&pdev->dev);
 	pm_runtime_set_suspended(&pdev->dev);
 	mutex_destroy(&tx_priv->mclk_lock);
+#ifdef OPLUS_ARCH_EXTENDS
 	mutex_destroy(&tx_priv->wlock);
+#endif /* OPLUS_ARCH_EXTENDS */
 	lpass_cdc_unregister_macro(&pdev->dev, TX_MACRO);
 	return 0;
 }
