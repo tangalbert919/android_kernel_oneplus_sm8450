@@ -112,3 +112,4 @@ static struct platform_driver aop_qmp_msg_driver = {
 	},
 };
 builtin_platform_driver(aop_qmp_msg_driver);
+MODULE_LICENSE("GPL v2");
