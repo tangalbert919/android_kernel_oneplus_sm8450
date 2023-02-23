@@ -28,6 +28,8 @@
 #include "dsi-panel-oplus-samsung-s6e3xa2-1792-1920-dsc-cmd.dtsi"
 #include "dsi-panel-oplus-samsung-s6e3fac-1080-2120-dsc-cmd.dtsi"
 #include "dsi-panel-oplus-samsung-s6e3fac-1080-2120-dsc-cmd-wdte.dtsi"
+#include "dsi-panel-oplus-ovaltine_boe_nt37705_1080_2412_dsc_cmd.dtsi"
+#include "dsi-panel-oplus22803-nt37705-1240-2772-dsc-cmd.dtsi"
 
 &soc {
 	oplus_display_dev: oplus,dsi-display-dev {
@@ -36,6 +38,8 @@
 			&dsi_samsung_ams662zs01_1080_2400_dsc_cmd
 			&dsi_oplus_samsung_s6e3_1792_1920_dsc_vid
 			&dsi_oplus_samsung_s6e3xa2_1792_1920_dsc_cmd
+			&dsi_oplus_ovaltine_boe_nt37705_1080_2412_dsc_cmd
+			&dsi_oplus22803_nt37705_1240_2772_dsc_cmd
 		>;
 		oplus,dsi-panel-secondary = <
 			&dsi_oplus_samsung_s6e3fac_1080_2120_dsc_cmd

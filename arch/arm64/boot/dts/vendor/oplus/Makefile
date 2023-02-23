@@ -23,6 +23,15 @@ jnc-20865-waipio-overlay.dtbo-base := waipio.dtb waipiop.dtb waipio-v2.dtb waipi
 baize-21001-waipio-overlay.dtbo-base := waipio.dtb waipiop.dtb waipio-v2.dtb waipiop-v2.dtb
 kunpeng-21009-waipio-overlay.dtbo-base := waipio.dtb waipiop.dtb waipio-v2.dtb waipiop-v2.dtb
 ferrari-21631-waipio-overlay.dtbo-base := waipio.dtb waipiop.dtb waipio-v2.dtb waipiop-v2.dtb
+
+dtbo-$(CONFIG_ARCH_CAPE) +=  \
+	ovaltine-21841-cape-overlay.dtbo \
+	ovaltine-21845-cape-overlay.dtbo \
+	udon-22803-cape-overlay.dtbo
+
+ovaltine-21841-cape-overlay.dtbo-base := cape.dtb cape-v2.dtb
+ovaltine-21845-cape-overlay.dtbo-base := cape.dtb cape-v2.dtb
+udon-22803-cape-overlay.dtbo-base := cape.dtb cape-v2.dtb
 endif
 
 always-y	:= $(dtb-y)
