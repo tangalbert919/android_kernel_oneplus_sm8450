@@ -45,7 +45,9 @@ dtbo-$(CONFIG_ARCH_WAIPIO) += oplus/wly-20846-audio-waipio-overlay.dtbo \
 
 #for cape platform
 dtbo-$(CONFIG_ARCH_CAPE) += oplus/whiteswan-22001-audio-cape-overlay.dtbo \
-                 oplus/lvzhou-22015-audio-cape-overlay.dtbo
+                 oplus/lvzhou-22015-audio-cape-overlay.dtbo \
+                 oplus/ovaltine-21841-audio-cape-overlay.dtbo \
+                 oplus/udon-22803-audio-cape-overlay.dtbo
 
  always-y    := $(dtb-y) $(dtbo-y)
  subdir-y    := $(dts-dirs)
