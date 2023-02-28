@@ -93,7 +93,7 @@ EXTRA_CFLAGS += -Wheader-guard
 endif
 
 ifeq ($(KERNEL_BUILD), 1)
-	obj-y	+= codec/
+	obj-y	+= codecs/
 endif
 
 # Module information used by KBuild framework
