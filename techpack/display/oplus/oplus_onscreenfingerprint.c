@@ -13,7 +13,7 @@
 #include "sde_encoder_phys.h"
 #include "sde_trace.h"
 #include <linux/msm_drm_notify.h>
-#include "../../../oplus/kernel/touchpanel/oplus_touchscreen_v2/touchpanel_notify/touchpanel_event_notify.h"
+#include "../../../drivers/input/touchscreen/oplus_touchscreen_v2/touchpanel_notify/touchpanel_event_notify.h"
 
 /* -------------------- macro -------------------- */
 /* fp type bit setting */

@@ -9,4 +9,4 @@ LINUXINCLUDE    += \
 		   -I$(DISPLAY_ROOT)/include
 USERINCLUDE     += -I$(DISPLAY_ROOT)/include/uapi/display
 
-obj-$(CONFIG_DRM_MSM) += msm/
+obj-y += msm/

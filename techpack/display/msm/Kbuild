@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
 KDIR := $(TOP)/kernel_platform/common
+DISPLAY_ROOT=$(srctree)/techpack/display
+KERNEL_ROOT=$(srctree)
 
 ifeq ($(CONFIG_ARCH_WAIPIO), y)
 ifeq ($(CONFIG_ARCH_QTI_VM), y)
@@ -38,7 +40,6 @@ LINUX_INC +=	-Iinclude/linux \
 LINUX_INC +=	-I$(DISPLAY_ROOT) \
 	-I$(DISPLAY_ROOT)/include \
 	-I$(KERNEL_ROOT)/drivers/clk/qcom \
-	-I$(KERNEL_SRC)/drivers/clk/qcom \
 	-I$(DISPLAY_ROOT)/include/linux \
 	-I$(DISPLAY_ROOT)/rotator \
 	-I$(DISPLAY_ROOT)/msm \
